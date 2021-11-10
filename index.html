@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+      #info {
+        color: white;
+      	position: absolute;
+      	top: 10px;
+      	width: 100%;
+      	text-align: left;
+      	z-index: 100;
+        font-family: monospace;
+      	display:block;
+      }
+		</style>
+	</head>
+	<body>
+    <div id="info">Description</div>
+
+		<script type="module">
+      import * as THREE from 'https://cdn.skypack.dev/three@0.134.0';
+
+			const scene = new THREE.Scene();
+			const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+
+			const renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+
+      import { OrbitControls }   from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/controls/OrbitControls.js';
+      import { GLTFLoader }      from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/loaders/GLTFLoader.js';
+      import { RoomEnvironment } from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/environments/RoomEnvironment.js';
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      const imgloader = new THREE.TextureLoader();
+
+			const geometry = new THREE.BoxGeometry();
+			const material = new THREE.MeshBasicMaterial({map: imgloader.load("img/wall.jpg") });
+      material.flatShading = true;
+
+			const cube = new THREE.Mesh( geometry, material );
+			scene.add( cube );
+
+      const linematerial = new THREE.LineBasicMaterial( { color: 0x0000ff } );
+      const points = [];
+      points.push( new THREE.Vector3( -10,  -10,  0 ) );
+      points.push( new THREE.Vector3( -10,   10,  0 ) );
+      points.push( new THREE.Vector3(  10,   10,  0 ) );
+      points.push( new THREE.Vector3(  10,  -10,  0 ) );
+      points.push( new THREE.Vector3(  -10,  -10,  0 ) );
+
+      const linegeo = new THREE.BufferGeometry().setFromPoints( points );
+
+      const line = new THREE.Line( linegeo, linematerial );
+      scene.add( line );
+
+			camera.position.z = 20;
+
+      const environment = new RoomEnvironment();
+      const pmremGenerator = new THREE.PMREMGenerator( renderer );
+
+      scene.background = new THREE.Color( 0xbbbbbb );
+			scene.environment = pmremGenerator.fromScene( environment ).texture;
+
+      const loader = new GLTFLoader();
+
+      loader.load( 'mod/lilhouse.glb', function ( gltf ) {
+      	scene.add( gltf.scene );
+      }, undefined, function ( error ) {
+
+      	console.error( error );
+
+      } );
+
+      const debugcam = () => {
+        var nice = [];
+        nice[0] = "x:" + camera.rotation.x.toFixed(6).padStart(10, '0');
+        nice[1] = "y:" + camera.rotation.y.toFixed(6).padStart(10, '0');
+        nice[2] = "z:" + camera.rotation.z.toFixed(6).padStart(10, '0');
+        document.getElementById("info").innerHTML=nice.join('<br/>');
+      }
+
+			const animate = function () {
+				requestAnimationFrame( animate );
+				cube.rotation.x += 0.01;
+				cube.rotation.y += 0.01;
+
+				renderer.render( scene, camera );
+        debugcam();
+			};
+
+			animate();
+		</script>
+	</body>
+</html>
