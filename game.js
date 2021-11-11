@@ -37,7 +37,10 @@
   const line    = new THREE.Line( linegeo, linematerial );
   scene.add( line );
 
+  camera.up = new THREE.Vector3( 0, 0 , 1 );
+
   camera.position.z = 30;
+  camera.position.y = -30;
 
   const environment    = new RoomEnvironment();
   const pmremGenerator = new THREE.PMREMGenerator( renderer );
@@ -179,7 +182,7 @@
             break;
           case 65:
           case 68:
-          if(running==true) setRunning(false);
+            if(running==true) setRunning(false);
             movement[1] = 0;
             movement[2] = 0;
             break;
