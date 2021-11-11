@@ -1,4 +1,4 @@
-
+  import playSound from './MusicPlayer.js'
   import * as THREE from 'https://cdn.skypack.dev/three@0.134.0';
 
   const scene    = new THREE.Scene();
@@ -48,6 +48,17 @@
   scene.background     = new THREE.Color( 0xbbbbbb );
   scene.environment    = pmremGenerator.fromScene( environment ).texture;
   const movement       = [0,0,0]; //Y pos X pos Animation on/off
+
+//-----Sound--------------------------
+
+document.addEventListener("click", () => {
+    //sound.loop = true;
+  playSound("sound/test.mp3", 0.5, false);
+})
+//--------------------------------------
+
+
+
 
 
   console.log("flag");
@@ -213,3 +224,5 @@
   };
 
   animate();
+
+

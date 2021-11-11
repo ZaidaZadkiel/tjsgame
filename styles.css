@@ -1,0 +1,16 @@
+body { margin: 0; }
+
+#info {
+    color: white;
+    position: absolute;
+    top: 10px;
+    width: 100%;
+    text-align: left;
+    z-index: 100;
+    font-family: monospace;
+    display:block;
+}
+
+audio{
+    display: none;
+}
