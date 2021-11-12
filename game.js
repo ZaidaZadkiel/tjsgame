@@ -12,6 +12,9 @@
   renderer.setSize( window.innerWidth, window.innerHeight );
   document.body.appendChild( renderer.domElement );
 
+  const listener = new THREE.AudioListener();
+  camera.add( listener );
+
   import { OrbitControls }   from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/controls/OrbitControls.js';
   import { GLTFLoader }      from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/loaders/GLTFLoader.js';
   import { RoomEnvironment } from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/environments/RoomEnvironment.js';
@@ -74,10 +77,10 @@
 
 //-----Sound--------------------------
 
-document.addEventListener("click", () => {
+// document.addEventListener("load", () => {
     //sound.loop = true;
-  playSound("sound/test.mp3", 0.5, false);
-})
+  playSound(listener, "sound/test.mp3", 0.5, false);
+// })
 //--------------------------------------
 
 
