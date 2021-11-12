@@ -1,5 +1,9 @@
-  import playSound from './MusicPlayer.js'
-  import * as THREE from 'https://cdn.skypack.dev/three@0.134.0';
+  import playSound          from './MusicPlayer.js'
+  import * as THREE         from 'https://cdn.skypack.dev/three@0.134.0';
+  import { FXAAShader }     from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/shaders/FXAAShader.js';
+  import { EffectComposer } from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/postprocessing/EffectComposer.js';
+  import { ShaderPass }     from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/postprocessing/ShaderPass.js';
+  import { RenderPass }     from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/postprocessing/RenderPass.js';
 
   const scene    = new THREE.Scene();
   const camera   = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -39,7 +43,7 @@
 
   camera.up = new THREE.Vector3( 0, 0 , 1 );
 
-  camera.position.z = 30;
+  camera.position.z = 60;
   camera.position.y = -30;
 
   const environment    = new RoomEnvironment();
@@ -47,7 +51,26 @@
   const loader         = new GLTFLoader();
   scene.background     = new THREE.Color( 0xbbbbbb );
   scene.environment    = pmremGenerator.fromScene( environment ).texture;
-  const movement       = [0,0,0]; //Y pos X pos Animation on/off
+  const movement       = [0,0,0,0, 0]; //Y pos X pos Animation on/off
+  const mov_L   = 0;
+  const mov_R   = 1;
+  const mov_U   = 2;
+  const mov_D   = 3;
+  const mov_ANI = 4;
+
+  let composer, fxaaPass;
+  fxaaPass = new ShaderPass( FXAAShader );
+
+  const renderPass = new RenderPass( scene, camera );
+  const pixelRatio = renderer.getPixelRatio();
+
+	fxaaPass.material.uniforms[ 'resolution' ].value.x = 1 / ( window.innerWidth * pixelRatio );
+	fxaaPass.material.uniforms[ 'resolution' ].value.y = 1 / ( window.innerHeight * pixelRatio );
+
+	composer = new EffectComposer( renderer );
+	composer.addPass( renderPass );
+	composer.addPass( fxaaPass );
+
 
 //-----Sound--------------------------
 
@@ -112,13 +135,13 @@ document.addEventListener("click", () => {
 
   const debugcam = () => {
     var nice = [];
-    nice[0] = "cube:" + Object.keys(mixer[0].clipAction(objects[0].animations[0])) ;
+    // nice[0] = "cube:" + Object.keys(mixer[0].clipAction(objects[0].animations[0])) ;
     nice[1] = "y:" + camera.rotation.y.toFixed(6).padStart(10, '0');
     nice[2] = "z:" + camera.rotation.z.toFixed(6).padStart(10, '0');
-    nice[3] = "posx:" + cube.position.x.toFixed(6).padStart(10, '0');
-    nice[4] = "posy:" + cube.position.y.toFixed(6).padStart(10, '0');
+    nice[3] = "posx:" + (movement[mov_R] - movement[mov_L]); //cube.position.x.toFixed(6).padStart(10, '0');
+    nice[4] = "posy:" + (movement[mov_U] - movement[mov_D]); //cube.position.y.toFixed(6).padStart(10, '0');
     nice[5] = "rotz:" + cube.rotation.z.toFixed(6).padStart(10, '0');
-    nice[6] = "mov[2]:" + movement[2];
+    nice[6] = "mov:" + movement;
     document.getElementById("info").innerHTML=nice.join('<br/>');
   }
 
@@ -136,7 +159,8 @@ document.addEventListener("click", () => {
 
   var running = false;
   const setRunning = (isRunning) => {
-    running = isRunning
+    if(isRunning == running) return; //dont overwrite animation
+    running = isRunning //set state for next iteration
     if(isRunning===false){
       mixer[0].clipAction( objects[0].animations[1] ).stop();
       mixer[0].clipAction( objects[0].animations[0] ).play();
@@ -149,33 +173,12 @@ document.addEventListener("click", () => {
   document.addEventListener(
     "keydown",
     (event) => {
-        //hardcoder4lyf bby
         switch(event.which){
-          case 87:
-            movement[0] =  0.1;
-            movement[2] = 1
-            cube.rotation.z = -3.15; //idk why those values
-            if(running == false) setRunning(true);
-            break;
-          case 83:
-            movement[0] = -0.1;
-            movement[2] = 1
-            cube.rotation.z = 0;
-            if(running == false) setRunning(true);
-            break;
-          case 65:
-            movement[1] = -0.1;
-            movement[2] = 1
-            if(running == false) setRunning(true);
-            cube.rotation.z = -1.6;
-            break;
-          case 68:
-            movement[1] =  0.1;
-            movement[2] = 1
-            if(running == false) setRunning(true);
-            cube.rotation.z = 1.6;
-            break;
-        }
+          case 87: movement[mov_U] = 1; break;
+          case 83: movement[mov_D] = 1; break;
+          case 65: movement[mov_L] = 1; break;
+          case 68: movement[mov_R] = 1; break;
+        } // switch(event.which)
     },
     false
   );
@@ -183,30 +186,39 @@ document.addEventListener("click", () => {
   document.addEventListener(
     "keyup",
     (event) => {
-        //hardcoder4lyf bby
         switch(event.which){
-          case 87:
-          case 83:
-            if(running==true) setRunning(false);
-            movement[0] = 0;
-            movement[2] = 0;
-            break;
-          case 65:
-          case 68:
-            if(running==true) setRunning(false);
-            movement[1] = 0;
-            movement[2] = 0;
-            break;
+          case 87: movement[mov_U] = 0; break;
+          case 83: movement[mov_D] = 0; break;
+          case 65: movement[mov_L] = 0; break;
+          case 68: movement[mov_R] = 0; break;
         }
     },
     false
   );
 
+  let direction_x, direction_y;
   const animate = function () {
     requestAnimationFrame( animate );
-    let delta = clock.getDelta();
-    cube.position.x += movement[1];
-    cube.position.y += movement[0];
+
+    let delta   = clock.getDelta();
+    direction_x = (movement[mov_R] - movement[mov_L]);
+    direction_y = (movement[mov_U] - movement[mov_D]);
+
+    cube.position.x += direction_x*0.15;
+    cube.position.y += direction_y*0.15;
+    let rotz = Math.atan2(
+       direction_x,
+      -direction_y
+    ); // witchcraft from stockoverflaw
+    if(direction_x || direction_y){
+      cube.rotation.z = rotz;
+      setRunning(true);
+    } else {
+      setRunning(false);
+    }
+    camera.position.x = cube.position.x;
+    camera.position.y = cube.position.y-10;
+
     camera.lookAt(cube.position);
     // scenemixer.update( clock.getDelta() );
 
@@ -219,10 +231,9 @@ document.addEventListener("click", () => {
     //   mixer[0].clipAction( objects[0].animations[0] ).reset().play();
     // }
 
-    renderer.render( scene, camera );
+    // renderer.render( scene, camera );
+    composer.render();
     debugcam();
   };
 
   animate();
-
-
