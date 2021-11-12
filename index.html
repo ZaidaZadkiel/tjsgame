@@ -4,12 +4,46 @@
 		<meta charset="utf-8">
 		<title>My first three.js app</title>
 		<link rel="stylesheet" href="styles.css">
+		<style>
+			body {
+				background-color: linen;
+				margin: 0px;
+				text-align: center;
+			}
+
+			h1 {
+				color: maroon;
+				margin-left: 40px;
+			}
+			#info {
+				background-color: black;
+				position: absolute;
+				text-align: center;
+		    width: 50%;
+		    height: 50%;
+		    top: 75%;
+		    left: 50%;
+		    margin-left: -25%; /* margin is -0.5 * dimension */
+		    margin-top: -25%;
+
+			}
+		</style>
 	</head>
+	<script type="text/javascript">
+		function lolgame(){
+			console.log("lolin");
+			var script = document.createElement('script');
+			script.src = "game.js";
+			script.type = "module";
+			document.head.appendChild(script); //or something of the likes
+			document.getElementById("info").style.visibility = "hidden";
+		}
+	// <script type="module" src="game.js">
+	</script>
 	<body>
-	<div id="info">Description</div>
+	<div id="info" onclick="lolgame()">
+		Press to PLAY
+	</div>
 
-
-		<script type="module" src="game.js">
-		</script>
 	</body>
 </html>

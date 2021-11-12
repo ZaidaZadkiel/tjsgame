@@ -77,10 +77,8 @@
 
 //-----Sound--------------------------
 
-// document.addEventListener("load", () => {
-    //sound.loop = true;
-  playSound(listener, "sound/test.mp3", 0.5, false);
-// })
+playSound(listener, "sound/test.mp3", 0.5, false);
+
 //--------------------------------------
 
 
