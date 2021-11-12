@@ -205,8 +205,8 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     direction_x = (movement[mov_R] - movement[mov_L]);
     direction_y = (movement[mov_U] - movement[mov_D]);
 
-    cube.position.x += direction_x*0.15;
-    cube.position.y += direction_y*0.15;
+    cube.position.x += direction_x*(delta*30);
+    cube.position.y += direction_y*(delta*30);
     let rotz = Math.atan2(
        direction_x,
       -direction_y
