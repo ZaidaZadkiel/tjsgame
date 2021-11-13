@@ -31,17 +31,18 @@
 
   material.flatShading = true;
 
-  const linematerial = new THREE.LineBasicMaterial( { color: 0x0000ff } );
+  const linematerial = new THREE.LineBasicMaterial( { color: 0xff0000 } );
   const points = [
-    new THREE.Vector3( -10,  -10,  0 ) ,
-    new THREE.Vector3( -10,   10,  0 ) ,
-    new THREE.Vector3(  10,   10,  0 ) ,
-    new THREE.Vector3(  10,  -10,  0 ) ,
-    new THREE.Vector3( -10,  -10,  0 )
+    new THREE.Vector3( -10,  -10,  10 ) ,
+    new THREE.Vector3( -10,   10,  10 ) ,
+    // new THREE.Vector3(  10,   10,  10 ) ,
+    // new THREE.Vector3(  10,  -10,  10 ) ,
+    // new THREE.Vector3( -10,  -10,  10 )
   ];
 
   const linegeo = new THREE.BufferGeometry().setFromPoints( points );
   const line    = new THREE.Line( linegeo, linematerial );
+  line.frustumCulled = false;
   scene.add( line );
 
   camera.up = new THREE.Vector3( 0, 0 , 1 );
@@ -229,11 +230,11 @@ playSound(listener, "sound/test.mp3", 0.5, false);
                   if(movement[mov_SHOT]==0) shotstart = 0;
                   movement[mov_SHOT] = 1;
                   break; //cant move when shooting
-          case 87: movement[mov_U]    = 1; break;
-          case 83: movement[mov_D]    = 1; break;
-          case 65: movement[mov_L]    = 1; break;
-          case 68: movement[mov_R]    = 1; break;
-          // default: console.log(event.which); break;
+          case 38: movement[mov_U]    = 1; break;
+          case 40: movement[mov_D]    = 1; break;
+          case 37: movement[mov_L]    = 1; break;
+          case 39: movement[mov_R]    = 1; break;
+          default: console.log(event.which); break;
         } // switch(event.which)
     },
     false
@@ -244,20 +245,36 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     (event) => {
         switch(event.which){
           case 32: movement[mov_SHOT] = 0; break; //cant move when shooting
-          case 87: movement[mov_U]    = 0; break;
-          case 83: movement[mov_D]    = 0; break;
-          case 65: movement[mov_L]    = 0; break;
-          case 68: movement[mov_R]    = 0; break;
+          case 38: movement[mov_U]    = 0; break;
+          case 40: movement[mov_D]    = 0; break;
+          case 37: movement[mov_L]    = 0; break;
+          case 39: movement[mov_R]    = 0; break;
           // case 32: movement[mov_SHOT] = 0; break; //we dont unset shooting until end of animation
         }
     },
     false
   );
 
+  let xvector    = new THREE.Vector3(0,0,10);
+  let yvector    = new THREE.Vector3(0,0,10);
+  let xtarget    = new THREE.Vector3(0,0,10);
+  let ytarget    = new THREE.Vector3(0,0,10);
+
+
+  let xray = new THREE.Raycaster();
+  let yray = new THREE.Raycaster();
+
   let direction_x, direction_y;
+
   const animate = function () {
     requestAnimationFrame( animate );
     let delta   = clock.getDelta();
+
+    // points[0] = cube.position;
+    // if(ballz[ballz.length-1]) {
+    //   points[2] = ballz[ballz.length-1].position;
+    //   points[3] = zerovector;
+    // }
 
     ballz.forEach((b) => {
       b.translateY(-40 * delta); // move along the local z-axis
@@ -300,14 +317,36 @@ playSound(listener, "sound/test.mp3", 0.5, false);
       // direction_y = (movement[mov_U] - movement[mov_D]);
 
       if(direction_x || direction_y){
-        // cube.rotation.z = rotz;
+        xtarget.copy(cube.position); xtarget.z = 1;
+        xvector.y = 0; xvector.x = direction_x; xvector.normalize(); xray.set(xtarget, xvector);
+        let xbound = xray.intersectObject(objects[1].scene.children[0]);
+
+        ytarget.copy(cube.position); ytarget.z = 1;
+        yvector.x = 0; yvector.y = direction_y; yvector.normalize(); yray.set(ytarget, yvector);
+        let ybound = yray.intersectObject(objects[1].scene.children[0]);
+      /*
+        debug movement
+        points[1].x = cube.position.x;
+        points[1].y = cube.position.y;
+        if(xbound[0]) points[0] = xbound[0].point;
+        if(ybound[0]) points[2] = ybound[0].point;
+        //
+        linegeo.setFromPoints(points);
+        if(xbound.length>1)console.log("xbound",xbound[0].distance);
+        if(ybound.length>1)console.log("ybound",ybound[0].distance);
+      */
+        if(xbound.length>0 && xbound[0].distance>1.5){
+          cube.position.x += direction_x*(delta*30);
+        }
+        if(ybound.length>0 && ybound[0].distance>1.5){
+          cube.position.y += direction_y*(delta*30);
+        }
+
         setAnimation(true);
       } else {
         setAnimation(false);
       }
 
-      cube.position.x += direction_x*(delta*30);
-      cube.position.y += direction_y*(delta*30);
       // let rotz = Math.atan2(
       //    direction_x,
       //   -direction_y
@@ -316,7 +355,7 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     }
 
     camera.position.x = cube.position.x;
-    camera.position.y = cube.position.y-10;
+    camera.position.y = cube.position.y-1;
 
     camera.lookAt(cube.position);
     // scenemixer.update( clock.getDelta() );
