@@ -171,7 +171,24 @@ playSound(listener, "sound/test.mp3", 0.5, false);
 
   var cube = new THREE.Mesh( geometry, material );
   // console.log("obj", objects[1]);
+  let ballz = [];
+  const createball = () => {
+    let plasmaBall = new THREE.Mesh(
+      new THREE.SphereGeometry(0.5, 8, 4),
+      new THREE.MeshBasicMaterial({
+                 color: "aqua"
+               }));
 
+    let theta = -cube.rotation.z ;// * Math.PI/180;
+
+    plasmaBall.position.x = cube.position.x-( 1*Math.cos(theta));
+    plasmaBall.position.y = cube.position.y+( 1*Math.sin(theta));
+    plasmaBall.position.z = 2.5;
+
+    plasmaBall.quaternion.copy(cube.quaternion); // apply camera's quaternion
+    scene.add(plasmaBall);
+    ballz.push(plasmaBall);
+  };
 
 
   var running = false;
@@ -225,17 +242,22 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     requestAnimationFrame( animate );
     let delta   = clock.getDelta();
 
+    ballz.forEach((b) => {
+      b.translateY(-40 * delta); // move along the local z-axis
+    });
 
 
     if(movement[mov_SHOT]){
       running = false;
-      if(shotstart==0) shotstart = mixer[0].time;
+      if(shotstart==0) {
+        shotstart = mixer[0].time;
+        createball();
+      }
       mixer[0].clipAction( animations['monitoringo.glb'].Running )  .stop();
       mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).stop();
       mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .play();
       if( (mixer[0].time-shotstart) > animations['monitoringo.glb'].Shooting.duration) {
-        console.log(mixer[0].time - shotstart, animations['monitoringo.glb'].Shooting.duration);
-        // mixer[0].clipAction( animations['monitoringo.glb'].Shooting ).stop();
+        // console.log(mixer[0].time - shotstart, animations['monitoringo.glb'].Shooting.duration);
         mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
         mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).play();
 
