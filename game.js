@@ -118,7 +118,7 @@ playSound(listener, "sound/test.mp3", 0.5, false);
           // console.log(gltf.animations);
           if(Array.isArray(gltf.animations) && gltf.animations[0]){
             var action = mixer[i].clipAction( gltf.animations[ 0 ] )
-            action.loop = THREE.LoopRepeat;
+            // action.loop = THREE.LoopRepeat;
             action.reset().play();
             console.log("loled");
           }
@@ -128,6 +128,12 @@ playSound(listener, "sound/test.mp3", 0.5, false);
           if(i == 0){
             console.log("cube", gltf.scene);
             cube = gltf.scene;
+            // magic values :D
+            mixer[0].clipAction( animations['monitoringo.glb'].Shooting ).clampWhenFinished=true;
+            mixer[0].clipAction( animations['monitoringo.glb'].Shooting ).loop=THREE.LoopOnce;
+            mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
+            mixer[0].clipAction( animations['monitoringo.glb'].Running )  .stop();
+            mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).play();
             //TODO make animation shooting stop on time frame end
             // mixer[0].addEventListener( 'finished', ( event ) => {
             //   console.log( 'Finished animation action: ', event.action );
@@ -194,7 +200,7 @@ playSound(listener, "sound/test.mp3", 0.5, false);
   var running = false;
   var shotstart = 0;
   const setAnimation = (isRunning) => {
-    if(isRunning == running) return; //dont overwrite animation
+    if(isRunning == running || movement[mov_SHOT]) return; //dont overwrite animation or shooting
     running = isRunning //set state for next iteration
 
     if(isRunning===false){
@@ -208,11 +214,21 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     }
   } // const setAnimation = (isRunning) =>
 
+  const shot = () => {
+    if(movement[mov_SHOT]==1 && shotstart == 0){
+      shotstart          = mixer[0].time;
+      mixer[0].clipAction( animations['monitoringo.glb'].Shooting ).reset();
+      createball();
+    }
+  }
   document.addEventListener(
     "keydown",
     (event) => {
         switch(event.which){
-          case 32: movement[mov_SHOT] = 1; break; //cant move when shooting
+          case 32:
+                  if(movement[mov_SHOT]==0) shotstart = 0;
+                  movement[mov_SHOT] = 1;
+                  break; //cant move when shooting
           case 87: movement[mov_U]    = 1; break;
           case 83: movement[mov_D]    = 1; break;
           case 65: movement[mov_L]    = 1; break;
@@ -227,6 +243,7 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     "keyup",
     (event) => {
         switch(event.which){
+          case 32: movement[mov_SHOT] = 0; break; //cant move when shooting
           case 87: movement[mov_U]    = 0; break;
           case 83: movement[mov_D]    = 0; break;
           case 65: movement[mov_L]    = 0; break;
@@ -246,40 +263,56 @@ playSound(listener, "sound/test.mp3", 0.5, false);
       b.translateY(-40 * delta); // move along the local z-axis
     });
 
+    direction_x = (movement[mov_R] - movement[mov_L]);
+    direction_y = (movement[mov_U] - movement[mov_D]);
+
+    let rotz = Math.atan2(
+       direction_x,
+      -direction_y
+    ); // witchcraft from stockoverflaw
+
+    if(direction_x || direction_y){
+      cube.rotation.z = rotz;
+      setAnimation(true);
+    } else {
+      setAnimation(false);
+    }
 
     if(movement[mov_SHOT]){
+    // if(shotstart!=0) {
       running = false;
-      if(shotstart==0) {
-        shotstart = mixer[0].time;
-        createball();
-      }
+
       mixer[0].clipAction( animations['monitoringo.glb'].Running )  .stop();
       mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).stop();
       mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .play();
-      if( (mixer[0].time-shotstart) > animations['monitoringo.glb'].Shooting.duration) {
-        // console.log(mixer[0].time - shotstart, animations['monitoringo.glb'].Shooting.duration);
+
+      if( (mixer[0].time-shotstart) >= animations['monitoringo.glb'].Shooting.duration) {
         mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
         mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).play();
 
-        movement[mov_SHOT] = 0;
-        shotstart = 0;
+        // movement[mov_SHOT] = 0;
+        shotstart          = 0;
+        shot();
+
       }
     } else {
-      direction_x = (movement[mov_R] - movement[mov_L]);
-      direction_y = (movement[mov_U] - movement[mov_D]);
+      // direction_x = (movement[mov_R] - movement[mov_L]);
+      // direction_y = (movement[mov_U] - movement[mov_D]);
 
-      cube.position.x += direction_x*(delta*30);
-      cube.position.y += direction_y*(delta*30);
-      let rotz = Math.atan2(
-         direction_x,
-        -direction_y
-      ); // witchcraft from stockoverflaw
       if(direction_x || direction_y){
-        cube.rotation.z = rotz;
+        // cube.rotation.z = rotz;
         setAnimation(true);
       } else {
         setAnimation(false);
       }
+
+      cube.position.x += direction_x*(delta*30);
+      cube.position.y += direction_y*(delta*30);
+      // let rotz = Math.atan2(
+      //    direction_x,
+      //   -direction_y
+      // ); // witchcraft from stockoverflaw
+
     }
 
     camera.position.x = cube.position.x;
