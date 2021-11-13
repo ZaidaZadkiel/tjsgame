@@ -54,12 +54,14 @@
   const loader         = new GLTFLoader();
   scene.background     = new THREE.Color( 0xbbbbbb );
   scene.environment    = pmremGenerator.fromScene( environment ).texture;
-  const movement       = [0,0,0,0, 0]; //Y pos X pos Animation on/off
-  const mov_L   = 0;
-  const mov_R   = 1;
-  const mov_U   = 2;
-  const mov_D   = 3;
-  const mov_ANI = 4;
+  const movement       = [0,0,0,0, 0, 0]; //Y pos X pos Animation on/off
+  const mov_L    = 0;
+  const mov_R    = 1;
+  const mov_U    = 2;
+  const mov_D    = 3;
+  const mov_ANI  = 4;
+  const mov_SHOT = 5;
+
 
   let composer, fxaaPass;
   fxaaPass = new ShaderPass( FXAAShader );
@@ -86,9 +88,10 @@ playSound(listener, "sound/test.mp3", 0.5, false);
 
 
   console.log("flag");
-  var mixer   = [];
   var scenemixer = new THREE.AnimationMixer( scene );
-  var objects = [];
+  var mixer      = [];
+  var objects    = [];
+  var animations = [];
 
   const loadGLTFPhilez = (paths) => {
     if(!Array.isArray(paths)) {
@@ -102,10 +105,16 @@ playSound(listener, "sound/test.mp3", 0.5, false);
       loader.load(
         `mod/${path}`,
         ( gltf ) => {
-          objects[i] = gltf;
-          mixer[i]   = new THREE.AnimationMixer( gltf.scene );
+          mixer[i]      = new THREE.AnimationMixer( gltf.scene );
+          objects[i]    = gltf;
+          gltf.animations.forEach((item, i) => {
+            console.log("why", item.name);
+            if(!animations[path]) animations[path] = {};
+            animations[path][item.name] = item;
+          });
+
           // console.log(objects[i]);
-          console.log(i, mixer);
+          console.log("gltf", i, mixer, animations, gltf.animations);
           // console.log(gltf.animations);
           if(Array.isArray(gltf.animations) && gltf.animations[0]){
             var action = mixer[i].clipAction( gltf.animations[ 0 ] )
@@ -119,6 +128,11 @@ playSound(listener, "sound/test.mp3", 0.5, false);
           if(i == 0){
             console.log("cube", gltf.scene);
             cube = gltf.scene;
+            //TODO make animation shooting stop on time frame end
+            // mixer[0].addEventListener( 'finished', ( event ) => {
+            //   console.log( 'Finished animation action: ', event.action );
+            //   // start next animation
+            // });
           }
 
         },
@@ -158,27 +172,35 @@ playSound(listener, "sound/test.mp3", 0.5, false);
   var cube = new THREE.Mesh( geometry, material );
   // console.log("obj", objects[1]);
 
+
+
   var running = false;
-  const setRunning = (isRunning) => {
+  var shotstart = 0;
+  const setAnimation = (isRunning) => {
     if(isRunning == running) return; //dont overwrite animation
     running = isRunning //set state for next iteration
+
     if(isRunning===false){
-      mixer[0].clipAction( objects[0].animations[1] ).stop();
-      mixer[0].clipAction( objects[0].animations[0] ).play();
+      mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
+      mixer[0].clipAction( animations['monitoringo.glb'].Running )  .stop();
+      mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).play();
     } else {
-      mixer[0].clipAction( objects[0].animations[0] ).stop();
-      mixer[0].clipAction( objects[0].animations[1] ).play();
+      mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
+      mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).stop();
+      mixer[0].clipAction( animations['monitoringo.glb'].Running )  .play();
     }
-  }
+  } // const setAnimation = (isRunning) =>
 
   document.addEventListener(
     "keydown",
     (event) => {
         switch(event.which){
-          case 87: movement[mov_U] = 1; break;
-          case 83: movement[mov_D] = 1; break;
-          case 65: movement[mov_L] = 1; break;
-          case 68: movement[mov_R] = 1; break;
+          case 32: movement[mov_SHOT] = 1; break; //cant move when shooting
+          case 87: movement[mov_U]    = 1; break;
+          case 83: movement[mov_D]    = 1; break;
+          case 65: movement[mov_L]    = 1; break;
+          case 68: movement[mov_R]    = 1; break;
+          // default: console.log(event.which); break;
         } // switch(event.which)
     },
     false
@@ -188,10 +210,11 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     "keyup",
     (event) => {
         switch(event.which){
-          case 87: movement[mov_U] = 0; break;
-          case 83: movement[mov_D] = 0; break;
-          case 65: movement[mov_L] = 0; break;
-          case 68: movement[mov_R] = 0; break;
+          case 87: movement[mov_U]    = 0; break;
+          case 83: movement[mov_D]    = 0; break;
+          case 65: movement[mov_L]    = 0; break;
+          case 68: movement[mov_R]    = 0; break;
+          // case 32: movement[mov_SHOT] = 0; break; //we dont unset shooting until end of animation
         }
     },
     false
@@ -200,23 +223,43 @@ playSound(listener, "sound/test.mp3", 0.5, false);
   let direction_x, direction_y;
   const animate = function () {
     requestAnimationFrame( animate );
-
     let delta   = clock.getDelta();
-    direction_x = (movement[mov_R] - movement[mov_L]);
-    direction_y = (movement[mov_U] - movement[mov_D]);
 
-    cube.position.x += direction_x*(delta*30);
-    cube.position.y += direction_y*(delta*30);
-    let rotz = Math.atan2(
-       direction_x,
-      -direction_y
-    ); // witchcraft from stockoverflaw
-    if(direction_x || direction_y){
-      cube.rotation.z = rotz;
-      setRunning(true);
+
+
+    if(movement[mov_SHOT]){
+      running = false;
+      if(shotstart==0) shotstart = mixer[0].time;
+      mixer[0].clipAction( animations['monitoringo.glb'].Running )  .stop();
+      mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).stop();
+      mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .play();
+      if( (mixer[0].time-shotstart) > animations['monitoringo.glb'].Shooting.duration) {
+        console.log(mixer[0].time - shotstart, animations['monitoringo.glb'].Shooting.duration);
+        // mixer[0].clipAction( animations['monitoringo.glb'].Shooting ).stop();
+        mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
+        mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).play();
+
+        movement[mov_SHOT] = 0;
+        shotstart = 0;
+      }
     } else {
-      setRunning(false);
+      direction_x = (movement[mov_R] - movement[mov_L]);
+      direction_y = (movement[mov_U] - movement[mov_D]);
+
+      cube.position.x += direction_x*(delta*30);
+      cube.position.y += direction_y*(delta*30);
+      let rotz = Math.atan2(
+         direction_x,
+        -direction_y
+      ); // witchcraft from stockoverflaw
+      if(direction_x || direction_y){
+        cube.rotation.z = rotz;
+        setAnimation(true);
+      } else {
+        setAnimation(false);
+      }
     }
+
     camera.position.x = cube.position.x;
     camera.position.y = cube.position.y-10;
 
@@ -238,3 +281,15 @@ playSound(listener, "sound/test.mp3", 0.5, false);
   };
 
   animate();
+
+  window.addEventListener(
+    'resize',
+    ()=>{
+    	camera.aspect = window.innerWidth / window.innerHeight;
+    	camera.updateProjectionMatrix();
+    	renderer.setSize( window.innerWidth, window.innerHeight );
+      fxaaPass.material.uniforms[ 'resolution' ].value.x = 1 / ( window.innerWidth  * renderer.getPixelRatio() );
+      fxaaPass.material.uniforms[ 'resolution' ].value.y = 1 / ( window.innerHeight * renderer.getPixelRatio() );
+    },
+    false
+);
