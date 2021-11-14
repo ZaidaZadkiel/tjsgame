@@ -43,7 +43,7 @@
   scene.add( line );
 
   camera.up = new THREE.Vector3( 0, 0 , 1 );
-  camera.position.z =  50;
+  camera.position.z =  55;
   camera.position.y = -30;
 
   const environment    = new RoomEnvironment();
@@ -278,14 +278,14 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
   const createTurret = () => {
     let turret = objects["turret.glb"].scene.clone();
-    // turret.position.set(10,10,0);
-    turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
+    turret.position.set(10,10,0);
+    // turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
 
-    const mixer = new THREE.AnimationMixer(turret);
+    const t_mixer = new THREE.AnimationMixer(turret);
     const turretAnims = animations["turret.glb"];
 
-    mixer.clipAction(turretAnims.BODYROLLIN).play();
-    mixer.clipAction(turretAnims.WHEELROLLIN).play();
+    t_mixer.clipAction(turretAnims.BODYROLLIN).play();
+    t_mixer.clipAction(turretAnims.WHEELROLLIN).play();
 
 
     const tanksound = new THREE.PositionalAudio(listener);
@@ -300,12 +300,12 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     var index = turrets.indexOf(null);
     if(index == -1){
-      turretMixer.push(mixer);
+      turretMixer.push(t_mixer);
       turrets.push(turret);
       turretAction.push({})
     } else {
       turrets[index]      = turret;
-      turretMixer[index]  = mixer;
+      turretMixer[index]  = t_mixer;
       turretAction[index] = {};
     }
   };
@@ -348,6 +348,37 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       ballz[index] = plasmaBall;
     }
   };
+
+  const cannons = [];
+  const createcannon = (mesh) => {
+    let plasmaBall = new THREE.Mesh(
+      new THREE.SphereGeometry(0.5, 4, 4),
+      plasmaballmaterial
+    );
+
+    let theta = -mesh.rotation.z ;// * Math.PI/180;
+
+    plasmaBall.position.x = mesh.position.x;//-( 1*Math.cos(theta));
+    plasmaBall.position.y = mesh.position.y;//+( 1*Math.sin(theta));
+    plasmaBall.position.z = 3;
+
+    plasmaBall.quaternion.copy(mesh.quaternion); // apply mesh's quaternion
+
+    const plasmapew = new THREE.PositionalAudio(listener);
+    plasmapew.setBuffer(pew);
+    plasmapew.setVolume(2);
+    plasmapew.play();
+
+    plasmaBall.add(plasmapew);
+    scene.add(plasmaBall);
+
+    let index = cannons.indexOf(null);
+    if(index==-1) {
+      cannons.push(plasmaBall);
+    } else {
+      cannons[index] = plasmaBall;
+    }
+  }; // const createcannon = (mesh) =>
 
   let boomz = [null];
   const createexplosion = (ball) => {
@@ -404,13 +435,15 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   } // const setAnimation = (isRunning) =>
 
   const tankStates = [
-    "rot", "mov"
+    "rot", "mov", "shot"
   ];
   const doTurretAction = (index, delta) => {
     let t      = turretAction[index];
     let turret = turrets[index];
     if(!t) return;
 
+    const eneanim  = animations['turret.glb'];
+    const enemixer = turretMixer[index];
     // turret.translateY(-10 * delta);
     switch(t.state){
       case "rot":
@@ -421,7 +454,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
             t.moving = true;
             break;
         }
-        turret.rotateZ((0.5 * t.direction) * delta);
+        turret.rotateZ((0.75 * t.direction) * delta);
         if(t.timeDelta > t.timeMove){
           t.state = "mov";
           t.moving = false;
@@ -432,6 +465,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
           t.timeMove  = getRandomInt(3000)/1000; // how long to rot
           t.timeDelta = 0;
           t.moving = true;
+          t.reverse = -1;
           break;
         }
 
@@ -439,7 +473,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         balltarget.copy(turret.position);
         balltarget.z=3;
 
-        turret.translateY(-1);
+        turret.translateY(t.reverse);
 
         ballvector.x=(turret.position.x-balltarget.x)*10;
         ballvector.y=(turret.position.y-balltarget.y)*10;
@@ -449,35 +483,42 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         ballray.set(balltarget, ballvector);
         let ballbound;
         ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
-        // if(ballray.ray.origin)    points[1] = ballray.ray.origin;
-        // if(ballray.ray.direction) points[0] = ballray.ray.direction;//balltarget.x; //ballvector.x*100;// + balltarget.x;
-        // // points[2] = ballvector;//balltarget.x; //ballvector.x*100;// + balltarget.x;
-        // if(ballbound[0]) points[0] = ballbound[0].point
-        // linegeo.setFromPoints(points);
 
         turret.position.copy(balltarget);
         turret.position.z=0;
 
-        debug.innerHTML = "touching";
-
         if(ballbound[0] && ballbound[0].distance > 4){
-          debug.innerHTML = "not touching wall";
-          turret.translateY(-2 * delta);
+          // debug.innerHTML = "not touching wall";
+          turret.translateY((6 * delta)*t.reverse);
+        } else {
+          t.reverse = 1;
         }
 
-
-
-        // if(turrets.length > 0){
-        //   // console.log(turrets);
-        //   ballbound = ballray.intersectObjects([...turrets, objects["stage.glb"].scene.children[0]]);
-        // } else {
-        // }
-
         if(t.timeDelta > t.timeMove){
-          t.state = "rot";
+          t.state = "shot";
           t.moving = false;
         }
         break;
+
+      case "shot":
+          if(t.moving == false){
+            console.log("flag");
+            enemixer.clipAction(eneanim.BODYROLLIN).stop();
+            enemixer.clipAction(eneanim.BODYSHOOTIN).play();
+            t.timeDelta = 0;
+            t.moving=true;
+            createcannon(turret)
+            break;
+          }
+
+          if( t.timeDelta >= eneanim.BODYSHOOTIN.duration) {
+            enemixer.clipAction(eneanim.BODYSHOOTIN).stop();
+            enemixer.clipAction(eneanim.BODYROLLIN).play();
+
+            t.moving = false;
+            t.state  = "rot";
+          }
+          break;
       default: t.state = tankStates[getRandomInt(tankStates.length-1)];
     }
     t.timeDelta += delta;
@@ -517,6 +558,37 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         // console.log("bye");
         scene.remove(b);
         boomz[i] = null;
+      }
+    });
+
+    cannons.forEach((b, i) => {
+      if(!b) {
+        // console.log("empty ball");
+        return;
+      }
+      balltarget.x=(b.position.x);
+      balltarget.y=(b.position.y);
+      balltarget.z=4;//(b.position.z);
+
+      b.translateY(-40 * delta); // move along the local y-axis
+
+      ballvector.x=(cube.position.x - balltarget.x);
+      ballvector.y=(cube.position.y - balltarget.y);
+      ballvector.z=4;//(b.position.z);
+      ballvector.normalize();
+
+      ballray.set(balltarget, ballvector);
+      let ballbound;
+      // if(turrets.length > 0){
+      //   ballbound = ballray.intersectObjects([...turrets, objects["stage.glb"].scene.children[0]]);
+      // } else {
+        ballbound = ballray.intersectObjects([cube, objects["stage.glb"].scene.children[0]]);
+      // }
+      if(ballbound[0] && ballbound[0].distance < 2){
+        // console.log(ballbound);
+        createexplosion(b);
+        scene.remove(b);
+        cannons[i] = null;
       }
     });
 
