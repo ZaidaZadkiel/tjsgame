@@ -217,7 +217,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     return Math.floor(Math.random() * max);
   }
 
-  var turrets     = [null];
+  var turrets     = [];
   var turretMixer = [null];
   var turretpositions = [
     new THREE.Vector3(-76.407, -135.438, 0),
@@ -246,7 +246,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       turrets[index]     = turret;
       turretMixer[index] = mixer;
     }
-    console.log(turretMixer)
+    // console.log(turretMixer)
     // let theta = -cube.rotation.z ;// * Math.PI/180;
     //
     // plasmaBall.position.x = cube.position.x-( 1*Math.cos(theta));
@@ -467,7 +467,13 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       ballvector.normalize();
 
       ballray.set(balltarget, ballvector);
-      let ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
+      let ballbound;
+      if(turrets.length > 0){
+        // console.log(turrets);
+        ballbound = ballray.intersectObjects([...turrets, objects["stage.glb"].scene.children[0]]);
+      } else {
+        ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
+      }
       if(ballbound[0] && ballbound[0].distance < 2){
         // console.log(ballbound);
         createexplosion(b);
@@ -506,7 +512,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         shotstart = 0;
         walking.stop();
         shot();
-        console.log(cube.position)
+        // console.log(cube.position)
       }
     } else {
       // direction_x = (movement[mov_R] - movement[mov_L]);
