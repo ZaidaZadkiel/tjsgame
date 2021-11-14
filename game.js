@@ -78,11 +78,13 @@
 
 
 const listener = new THREE.AudioListener();
-camera.add( listener );
 
-let sound = new THREE.Audio(listener);
-let pew   = null; //new THREE.AudioBuffer(listener);
-let bang  = null; //new THREE.AudioBuffer(listener);
+
+let sound   = new THREE.Audio(listener);
+let pew     = null; //new THREE.AudioBuffer(listener);
+let bang    = null; //new THREE.AudioBuffer(listener);
+let taptap  = null;
+let walking = null;
 scene.add(sound);
 
 const audioLoader = new THREE.AudioLoader();
@@ -90,21 +92,26 @@ audioLoader.load( "./sound/test.mp3", function( buffer ) {
   console.log("uh");
   sound.setBuffer( buffer );
   sound.setLoop( true );
-  sound.setVolume( 0.125 );
+  sound.setVolume( 0.05 );
   sound.play();
 });
 audioLoader.load( "./sound/pew.mp3", function( buffer ) {
   console.log("pew");
-  pew =  buffer;
-  // pew.setLoop( false );
-  // pew.setVolume( 1 );
+  pew  = buffer;
 });
 audioLoader.load( "./sound/bang.mp3", function( buffer ) {
   console.log("bang");
   bang = buffer;
-  // pew.setBuffer( buffer );
-  // pew.setLoop( false );
 });
+audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
+  console.log("taptap");
+  taptap = buffer;
+  walking = new THREE.Audio(listener);
+  walking.setBuffer(taptap);
+  walking.setVolume(0.25);
+  walking.setLoop(true);
+});
+
 //--------------------------------------
 
 
@@ -149,6 +156,7 @@ audioLoader.load( "./sound/bang.mp3", function( buffer ) {
           if(i == 0){
             // console.log("cube", gltf.scene);
             cube = gltf.scene;
+            cube.add( listener );
             // magic values :D
             mixer[0].clipAction( animations['monitoringo.glb'].Shooting ).clampWhenFinished=true;
             mixer[0].clipAction( animations['monitoringo.glb'].Shooting ).loop=THREE.LoopOnce;
@@ -222,7 +230,7 @@ audioLoader.load( "./sound/bang.mp3", function( buffer ) {
 
     const plasmapew = new THREE.PositionalAudio(listener);
     plasmapew.setBuffer(pew);
-    plasmapew.setVolume(10);
+    plasmapew.setVolume(2);
     plasmapew.play();
     plasmaBall.add(plasmapew);
 
@@ -281,10 +289,13 @@ audioLoader.load( "./sound/bang.mp3", function( buffer ) {
       mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
       mixer[0].clipAction( animations['monitoringo.glb'].Running )  .stop();
       mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).play();
+      walking.stop();
+      // walking.reset();
     } else {
       mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
       mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).stop();
       mixer[0].clipAction( animations['monitoringo.glb'].Running )  .play();
+      walking.play();
     }
   } // const setAnimation = (isRunning) =>
 
@@ -413,6 +424,7 @@ audioLoader.load( "./sound/bang.mp3", function( buffer ) {
         mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).play();
 
         shotstart          = 0;
+        walking.stop();
         shot();
 
       }
