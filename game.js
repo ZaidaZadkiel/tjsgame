@@ -5,7 +5,7 @@
   import { RenderPass }     from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/postprocessing/RenderPass.js';
 
   const scene    = new THREE.Scene();
-  const camera   = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 1000 );
+  const camera   = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 10, 100 );
   const renderer = new THREE.WebGLRenderer();
 
   renderer.setSize( window.innerWidth, window.innerHeight );
@@ -42,8 +42,7 @@
   scene.add( line );
 
   camera.up = new THREE.Vector3( 0, 0 , 1 );
-
-  camera.position.z = 60;
+  camera.position.z =  60;
   camera.position.y = -30;
 
   const environment    = new RoomEnvironment();
@@ -89,7 +88,7 @@ scene.add(sound);
 
 const audioLoader = new THREE.AudioLoader();
 audioLoader.load( "./sound/test.mp3", function( buffer ) {
-  console.log("uh");
+  console.log("bgm");
   sound.setBuffer( buffer );
   sound.setLoop( true );
   sound.setVolume( 0.05 );
@@ -135,34 +134,41 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       loader.load(
         `mod/${path}`,
         ( gltf ) => {
-          mixer[i]      = new THREE.AnimationMixer( gltf.scene );
-          objects[i]    = gltf;
-          gltf.animations.forEach((item, i) => {
-            if(!animations[path]) animations[path] = {};
-            animations[path][item.name] = item;
-          });
+          mixer  [path] = new THREE.AnimationMixer( gltf.scene );
+          objects[path] = gltf;
+
 
           // console.log(objects[i]);
           // console.log("gltf", i, mixer, animations, gltf.animations);
           // console.log(gltf.animations);
           if(Array.isArray(gltf.animations) && gltf.animations[0]){
-            var action = mixer[i].clipAction( gltf.animations[ 0 ] )
+            gltf.animations.forEach((item, i) => {
+              if(!animations[path]) animations[path] = {};
+              animations[path][item.name] = item;
+            });
+
+            // var action = mixer[path].clipAction( animations[path][0] )
             // action.loop = THREE.LoopRepeat;
-            action.reset().play();
+            // action.reset().play();
           }
 
+          if(i > 1) return; //??? we just hide the turrets for now
           scene.add( gltf.scene );
 
-          if(i == 0){
-            // console.log("cube", gltf.scene);
+          if(path == 'monitoringo.glb'){
+            // console.log('cube', gltf.scene);
             cube = gltf.scene;
             cube.add( listener );
             // magic values :D
-            mixer[0].clipAction( animations['monitoringo.glb'].Shooting ).clampWhenFinished=true;
-            mixer[0].clipAction( animations['monitoringo.glb'].Shooting ).loop=THREE.LoopOnce;
-            mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
-            mixer[0].clipAction( animations['monitoringo.glb'].Running )  .stop();
-            mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).play();
+            const playerMixer      = mixer     ['monitoringo.glb'];
+            const playerAnimations = animations['monitoringo.glb'];
+            playerMixer.clipAction( playerAnimations.Shooting ) .clampWhenFinished = true;
+            playerMixer.clipAction( playerAnimations.Shooting ) .loop              = THREE.LoopOnce;
+            playerMixer.clipAction( playerAnimations.Shooting ) .stop();
+            playerMixer.clipAction( playerAnimations.Running )  .stop();
+            playerMixer.clipAction( playerAnimations.Breathing ).play();
+
+
             //TODO make animation shooting stop on time frame end
             // mixer[0].addEventListener( 'finished', ( event ) => {
             //   console.log( 'Finished animation action: ', event.action );
@@ -198,21 +204,84 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   //
   loadGLTFPhilez(
     [
-      "monitoringo.glb",
-      "stage.glb"
-      // "lilhouse.glb",
+      "monitoringo.glb", //this guy is hardcoded at index 0, do not add above
+      "stage.glb",
+      "turret.glb"
     ]
   );
 
+
   var cube = new THREE.Mesh( geometry, material );
+
+  function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+  }
+
+  var turrets     = [null];
+  var turretMixer = [null];
+  var turretpositions = [
+    new THREE.Vector3(-76.407, -135.438, 0),
+    new THREE.Vector3(-39.942, -133.980, 0),
+    new THREE.Vector3(-44.943, -106.047, 0),
+    new THREE.Vector3( 39.213, -102.942, 0),
+    new THREE.Vector3( 39.213, -139.179, 0)
+  ];
+
+  const createTurret = () => {
+    let turret = objects["turret.glb"].scene.clone();
+    turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
+
+    const mixer = new THREE.AnimationMixer(turret);
+    const turretAnims = animations["turret.glb"];
+
+    mixer.clipAction(turretAnims.BODYROLLIN).play()
+    mixer.clipAction(turretAnims.WHEELROLLIN).play()
+    scene.add(turret);
+
+    var index = turrets.indexOf(null);
+    if(index == -1){
+      turretMixer.push(mixer);
+      turrets.push(turret);
+    } else {
+      turrets[index]     = turret;
+      turretMixer[index] = mixer;
+    }
+    console.log(turretMixer)
+    // let theta = -cube.rotation.z ;// * Math.PI/180;
+    //
+    // plasmaBall.position.x = cube.position.x-( 1*Math.cos(theta));
+    // plasmaBall.position.y = cube.position.y+( 1*Math.sin(theta));
+    // plasmaBall.position.z = 2.5;
+    //
+    // plasmaBall.quaternion.copy(cube.quaternion); // apply cube's quaternion
+    //
+    // const plasmapew = new THREE.PositionalAudio(listener);
+    // plasmapew.setBuffer(pew);
+    // plasmapew.setVolume(2);
+    // plasmapew.play();
+    // plasmaBall.add(plasmapew);
+    //
+    // // plasmaBall.children[0].play();
+    // scene.add(plasmaBall);
+    //
+    // let index = ballz.indexOf(null);
+    // if(index==-1) {
+    //   ballz.push(plasmaBall);
+    // } else {
+    //   ballz[index] = plasmaBall;
+    // }
+    // console.log("balllen", ballz.length);
+    // ballz.push(plasmaBall);
+  };
+
   var plasmaballmaterial = new THREE.MeshBasicMaterial({
                              color: "aqua"
                            });
   var explosionmaterial  = new THREE.MeshBasicMaterial({
                              color: "yellow",
-                             map: imgloader.load("img/Lava_Texture_preview.jpg")
+                             map  : imgloader.load("img/Lava_Texture_preview.jpg")
                            });
-  // console.log("obj", objects[1]);
+
   let ballz = [null];
   const createball = () => {
     let plasmaBall = new THREE.Mesh(
@@ -279,37 +348,41 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   }
 
 
-  var running = false;
+  var running   = null;
   var shotstart = 0;
   const setAnimation = (isRunning) => {
     if(isRunning == running || movement[mov_SHOT]) return; //dont overwrite animation or shooting
-    running = isRunning //set state for next iteration
+
+    running                = isRunning //set state for next iteration
+    const playerMixer      = mixer     ['monitoringo.glb'];
+    const playerAnimations = animations['monitoringo.glb'];
 
     if(isRunning===false){
-      mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
-      mixer[0].clipAction( animations['monitoringo.glb'].Running )  .stop();
-      mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).play();
+      playerMixer.clipAction( playerAnimations.Breathing ).play();
+      playerMixer.clipAction( playerAnimations.Shooting ) .stop();
+      playerMixer.clipAction( playerAnimations.Running )  .stop();
       walking.stop();
-      // walking.reset();
     } else {
-      mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
-      mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).stop();
-      mixer[0].clipAction( animations['monitoringo.glb'].Running )  .play();
+      playerMixer.clipAction( playerAnimations.Running )  .play();
+      playerMixer.clipAction( playerAnimations.Shooting ) .stop();
+      playerMixer.clipAction( playerAnimations.Breathing ).stop();
       walking.play();
     }
   } // const setAnimation = (isRunning) =>
 
   const shot = () => {
     if(movement[mov_SHOT]==1 && shotstart == 0){
-      shotstart          = mixer[0].time;
-      mixer[0].clipAction( animations['monitoringo.glb'].Shooting ).reset();
+      shotstart = mixer['monitoringo.glb'].time;
+      mixer['monitoringo.glb'].clipAction( animations['monitoringo.glb'].Shooting ).reset();
       createball();
     }
   }
+
   document.addEventListener(
     "keydown",
     (event) => {
         switch(event.which){
+          case 80: createTurret(); break;
           case 32:
                   if(movement[mov_SHOT]==0) shotstart = 0;
                   movement[mov_SHOT] = 1;
@@ -349,12 +422,20 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   let xray       = new THREE.Raycaster();
   let yray       = new THREE.Raycaster();
   let ballray    = new THREE.Raycaster();
-;
+
   let direction_x, direction_y;
 
   const animate = function () {
     requestAnimationFrame( animate );
     let delta   = clock.getDelta();
+
+    turrets.forEach((turret, i) => {
+      if(turret == null) return;
+      // turret.translateY(-10 * delta);
+      // turret.rotateZ(0.01);
+      if(turretMixer[i]) turretMixer[i].update( delta );
+    });
+
 
     boomz.forEach((b, i) => {
       if(b==null) return;
@@ -386,7 +467,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       ballvector.normalize();
 
       ballray.set(balltarget, ballvector);
-      let ballbound = ballray.intersectObject(objects[1].scene.children[0]);
+      let ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
       if(ballbound[0] && ballbound[0].distance < 2){
         // console.log(ballbound);
         createexplosion(b);
@@ -412,21 +493,20 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     }
 
     if(movement[mov_SHOT]){
-    // if(shotstart!=0) {
       running = false;
+      const playerMixer = mixer['monitoringo.glb'];
+      playerMixer.clipAction( animations['monitoringo.glb'].Running )  .stop();
+      playerMixer.clipAction( animations['monitoringo.glb'].Breathing ).stop();
+      playerMixer.clipAction( animations['monitoringo.glb'].Shooting ) .play();
 
-      mixer[0].clipAction( animations['monitoringo.glb'].Running )  .stop();
-      mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).stop();
-      mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .play();
+      if( (playerMixer.time-shotstart) >= animations['monitoringo.glb'].Shooting.duration) {
+        playerMixer.clipAction( animations['monitoringo.glb'].Shooting ) .stop();
+        playerMixer.clipAction( animations['monitoringo.glb'].Breathing ).play();
 
-      if( (mixer[0].time-shotstart) >= animations['monitoringo.glb'].Shooting.duration) {
-        mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
-        mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).play();
-
-        shotstart          = 0;
+        shotstart = 0;
         walking.stop();
         shot();
-
+        console.log(cube.position)
       }
     } else {
       // direction_x = (movement[mov_R] - movement[mov_L]);
@@ -435,11 +515,11 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       if(direction_x || direction_y){
         xtarget.copy(cube.position); xtarget.z = 1.5;
         xvector.z = 0; xvector.y = 0; xvector.x = direction_x; xvector.normalize(); xray.set(xtarget, xvector);
-        let xbound = xray.intersectObject(objects[1].scene.children[0]);
+        let xbound = xray.intersectObject(objects["stage.glb"].scene.children[0]);
 
         ytarget.copy(cube.position); ytarget.z = 1.5;
         yvector.z = 0; yvector.x = 0; yvector.y = direction_y; yvector.normalize(); yray.set(ytarget, yvector);
-        let ybound = yray.intersectObject(objects[1].scene.children[0]);
+        let ybound = yray.intersectObject(objects["stage.glb"].scene.children[0]);
       /**
         // debug movement
         points[1].x = cube.position.x;
@@ -466,22 +546,16 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     camera.position.x = cube.position.x;
     camera.position.y = cube.position.y-1;
-
     camera.lookAt(cube.position);
-    // scenemixer.update( clock.getDelta() );
 
-    if(mixer) mixer.forEach((mix) => {
-                // console.log(mix);
-                mix.update( delta );
+    if(mixer) Object.keys(mixer).forEach((name) => {
+                // console.log(name);
+                mixer[name].update( delta );
               });
 
-    // if(movement[2] == 1) {
-    //   mixer[0].clipAction( objects[0].animations[0] ).reset().play();
-    // }
 
-    // renderer.render( scene, camera );
+
     composer.render();
-    debugcam();
   };
 
   animate();
