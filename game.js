@@ -42,7 +42,7 @@
   scene.add( line );
 
   camera.up = new THREE.Vector3( 0, 0 , 1 );
-  camera.position.z =  60;
+  camera.position.z =  50;
   camera.position.y = -30;
 
   const environment    = new RoomEnvironment();
@@ -79,11 +79,12 @@
 const listener = new THREE.AudioListener();
 
 
-let sound   = new THREE.Audio(listener);
-let pew     = null; //new THREE.AudioBuffer(listener);
-let bang    = null; //new THREE.AudioBuffer(listener);
-let taptap  = null;
-let walking = null;
+let sound     = new THREE.Audio(listener);
+let pew       = null; //new THREE.AudioBuffer(listener);
+let bang      = null; //new THREE.AudioBuffer(listener);
+let taptap    = null;
+let walking   = null;
+let tankmotor = null
 scene.add(sound);
 
 const audioLoader = new THREE.AudioLoader();
@@ -93,6 +94,10 @@ audioLoader.load( "./sound/test.mp3", function( buffer ) {
   sound.setLoop( true );
   sound.setVolume( 0.05 );
   sound.play();
+});
+audioLoader.load( "./sound/tank.mp3", function( buffer ) {
+  console.log("tank");
+  tankmotor = buffer;
 });
 audioLoader.load( "./sound/pew.mp3", function( buffer ) {
   console.log("pew");
@@ -217,8 +222,9 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     return Math.floor(Math.random() * max);
   }
 
-  var turrets     = [];
-  var turretMixer = [null];
+  var turrets         = [];
+  var turretMixer     = [];
+  var turretAction    = []
   var turretpositions = [
     new THREE.Vector3(-76.407, -135.438, 0),
     new THREE.Vector3(-39.942, -133.980, 0),
@@ -229,22 +235,34 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
   const createTurret = () => {
     let turret = objects["turret.glb"].scene.clone();
-    turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
+    turret.position.set(10,10,0);
+    // turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
 
     const mixer = new THREE.AnimationMixer(turret);
     const turretAnims = animations["turret.glb"];
 
-    mixer.clipAction(turretAnims.BODYROLLIN).play()
-    mixer.clipAction(turretAnims.WHEELROLLIN).play()
+    mixer.clipAction(turretAnims.BODYROLLIN).play();
+    mixer.clipAction(turretAnims.WHEELROLLIN).play();
+
+
+    const tanksound = new THREE.PositionalAudio(listener);
+    tanksound.setBuffer(tankmotor);
+    tanksound.setVolume(2);
+    tanksound.setLoop(true);
+    tanksound.play();
+    turret.add(tanksound);
+
     scene.add(turret);
 
     var index = turrets.indexOf(null);
     if(index == -1){
       turretMixer.push(mixer);
       turrets.push(turret);
+      turretAction.push({})
     } else {
-      turrets[index]     = turret;
-      turretMixer[index] = mixer;
+      turrets[index]      = turret;
+      turretMixer[index]  = mixer;
+      turretAction[index] = {};
     }
     // console.log(turretMixer)
     // let theta = -cube.rotation.z ;// * Math.PI/180;
@@ -412,6 +430,12 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     false
   );
 
+  const doTurretAction = (index) => {
+    if(!turretAction[index]) return;
+    // turret.translateY(-10 * delta);
+    turrets[index].rotateZ(0.01);
+  }
+
   let xvector    = new THREE.Vector3(0,0,10);
   let yvector    = new THREE.Vector3(0,0,10);
   let xtarget    = new THREE.Vector3(0,0,10);
@@ -431,9 +455,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     turrets.forEach((turret, i) => {
       if(turret == null) return;
-      // turret.translateY(-10 * delta);
-      // turret.rotateZ(0.01);
-      if(turretMixer[i]) turretMixer[i].update( delta );
+      doTurretAction(i);
+      if(turretMixer[i])  turretMixer[i].update( delta );
     });
 
 
