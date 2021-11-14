@@ -7,6 +7,7 @@
   const scene    = new THREE.Scene();
   const camera   = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 10, 100 );
   const renderer = new THREE.WebGLRenderer();
+  const debug    = document.getElementById("debug");
 
   renderer.setSize( window.innerWidth, window.innerHeight );
   document.body.appendChild( renderer.domElement );
@@ -27,7 +28,7 @@
 
   material.flatShading = true;
 
-  const linematerial = new THREE.LineBasicMaterial( { color: 0xff0000 } );
+  const linematerial = new THREE.LineBasicMaterial( { color: 0xff0000, linewidth: 2 } );
   const points = [
     new THREE.Vector3( -10,  -10,  10 ) ,
     new THREE.Vector3( -10,   10,  10 ) ,
@@ -216,6 +217,48 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   );
 
 
+    const shot = () => {
+      if(movement[mov_SHOT]==1 && shotstart == 0){
+        shotstart = mixer['monitoringo.glb'].time;
+        mixer['monitoringo.glb'].clipAction( animations['monitoringo.glb'].Shooting ).reset();
+        createball();
+      }
+    }
+
+    document.addEventListener(
+      "keydown",
+      (event) => {
+          switch(event.which){
+            case 80: createTurret(); break;
+            case 32:
+                    if(movement[mov_SHOT]==0) shotstart = 0;
+                    movement[mov_SHOT] = 1;
+                    break; //cant move when shooting
+            case 38: movement[mov_U]    = 1; break;
+            case 40: movement[mov_D]    = 1; break;
+            case 37: movement[mov_L]    = 1; break;
+            case 39: movement[mov_R]    = 1; break;
+            default: console.log(event.which); break;
+          } // switch(event.which)
+      },
+      false
+    );
+
+    document.addEventListener(
+      "keyup",
+      (event) => {
+          switch(event.which){
+            case 32: movement[mov_SHOT] = 0; break; //cant move when shooting
+            case 38: movement[mov_U]    = 0; break;
+            case 40: movement[mov_D]    = 0; break;
+            case 37: movement[mov_L]    = 0; break;
+            case 39: movement[mov_R]    = 0; break;
+            // case 32: movement[mov_SHOT] = 0; break; //we dont unset shooting until end of animation
+          }
+      },
+      false
+    );
+
   var cube = new THREE.Mesh( geometry, material );
 
   function getRandomInt(max) {
@@ -235,8 +278,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
   const createTurret = () => {
     let turret = objects["turret.glb"].scene.clone();
-    turret.position.set(10,10,0);
-    // turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
+    // turret.position.set(10,10,0);
+    turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
 
     const mixer = new THREE.AnimationMixer(turret);
     const turretAnims = animations["turret.glb"];
@@ -249,8 +292,9 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     tanksound.setBuffer(tankmotor);
     tanksound.setVolume(2);
     tanksound.setLoop(true);
-    tanksound.play();
     turret.add(tanksound);
+    tanksound.play();
+    console.log("wat");
 
     scene.add(turret);
 
@@ -264,32 +308,6 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       turretMixer[index]  = mixer;
       turretAction[index] = {};
     }
-    // console.log(turretMixer)
-    // let theta = -cube.rotation.z ;// * Math.PI/180;
-    //
-    // plasmaBall.position.x = cube.position.x-( 1*Math.cos(theta));
-    // plasmaBall.position.y = cube.position.y+( 1*Math.sin(theta));
-    // plasmaBall.position.z = 2.5;
-    //
-    // plasmaBall.quaternion.copy(cube.quaternion); // apply cube's quaternion
-    //
-    // const plasmapew = new THREE.PositionalAudio(listener);
-    // plasmapew.setBuffer(pew);
-    // plasmapew.setVolume(2);
-    // plasmapew.play();
-    // plasmaBall.add(plasmapew);
-    //
-    // // plasmaBall.children[0].play();
-    // scene.add(plasmaBall);
-    //
-    // let index = ballz.indexOf(null);
-    // if(index==-1) {
-    //   ballz.push(plasmaBall);
-    // } else {
-    //   ballz[index] = plasmaBall;
-    // }
-    // console.log("balllen", ballz.length);
-    // ballz.push(plasmaBall);
   };
 
   var plasmaballmaterial = new THREE.MeshBasicMaterial({
@@ -319,9 +337,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     plasmapew.setBuffer(pew);
     plasmapew.setVolume(2);
     plasmapew.play();
-    plasmaBall.add(plasmapew);
 
-    // plasmaBall.children[0].play();
+    plasmaBall.add(plasmapew);
     scene.add(plasmaBall);
 
     let index = ballz.indexOf(null);
@@ -330,8 +347,6 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     } else {
       ballz[index] = plasmaBall;
     }
-    // console.log("balllen", ballz.length);
-    // ballz.push(plasmaBall);
   };
 
   let boomz = [null];
@@ -388,52 +403,85 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     }
   } // const setAnimation = (isRunning) =>
 
-  const shot = () => {
-    if(movement[mov_SHOT]==1 && shotstart == 0){
-      shotstart = mixer['monitoringo.glb'].time;
-      mixer['monitoringo.glb'].clipAction( animations['monitoringo.glb'].Shooting ).reset();
-      createball();
-    }
-  }
+  const tankStates = [
+    "rot", "mov"
+  ];
+  const doTurretAction = (index, delta) => {
+    let t      = turretAction[index];
+    let turret = turrets[index];
+    if(!t) return;
 
-  document.addEventListener(
-    "keydown",
-    (event) => {
-        switch(event.which){
-          case 80: createTurret(); break;
-          case 32:
-                  if(movement[mov_SHOT]==0) shotstart = 0;
-                  movement[mov_SHOT] = 1;
-                  break; //cant move when shooting
-          case 38: movement[mov_U]    = 1; break;
-          case 40: movement[mov_D]    = 1; break;
-          case 37: movement[mov_L]    = 1; break;
-          case 39: movement[mov_R]    = 1; break;
-          default: console.log(event.which); break;
-        } // switch(event.which)
-    },
-    false
-  );
-
-  document.addEventListener(
-    "keyup",
-    (event) => {
-        switch(event.which){
-          case 32: movement[mov_SHOT] = 0; break; //cant move when shooting
-          case 38: movement[mov_U]    = 0; break;
-          case 40: movement[mov_D]    = 0; break;
-          case 37: movement[mov_L]    = 0; break;
-          case 39: movement[mov_R]    = 0; break;
-          // case 32: movement[mov_SHOT] = 0; break; //we dont unset shooting until end of animation
-        }
-    },
-    false
-  );
-
-  const doTurretAction = (index) => {
-    if(!turretAction[index]) return;
     // turret.translateY(-10 * delta);
-    turrets[index].rotateZ(0.01);
+    switch(t.state){
+      case "rot":
+        if(!t.moving){
+            t.direction = getRandomInt(2)==1 ? -1 : 1; //rotate left or right
+            t.timeMove  = getRandomInt(3000)/1000; // how long to rot
+            t.timeDelta = 0;
+            t.moving = true;
+            break;
+        }
+        turret.rotateZ((0.5 * t.direction) * delta);
+        if(t.timeDelta > t.timeMove){
+          t.state = "mov";
+          t.moving = false;
+        }
+        break;
+      case "mov":
+        if(!t.moving){
+          t.timeMove  = getRandomInt(3000)/1000; // how long to rot
+          t.timeDelta = 0;
+          t.moving = true;
+          break;
+        }
+
+
+        balltarget.copy(turret.position);
+        balltarget.z=3;
+
+        turret.translateY(-1);
+
+        ballvector.x=(turret.position.x-balltarget.x)*10;
+        ballvector.y=(turret.position.y-balltarget.y)*10;
+        ballvector.z=3;
+        ballvector.normalize();
+
+        ballray.set(balltarget, ballvector);
+        let ballbound;
+        ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
+        // if(ballray.ray.origin)    points[1] = ballray.ray.origin;
+        // if(ballray.ray.direction) points[0] = ballray.ray.direction;//balltarget.x; //ballvector.x*100;// + balltarget.x;
+        // // points[2] = ballvector;//balltarget.x; //ballvector.x*100;// + balltarget.x;
+        // if(ballbound[0]) points[0] = ballbound[0].point
+        // linegeo.setFromPoints(points);
+
+        turret.position.copy(balltarget);
+        turret.position.z=0;
+
+        debug.innerHTML = "touching";
+
+        if(ballbound[0] && ballbound[0].distance > 4){
+          debug.innerHTML = "not touching wall";
+          turret.translateY(-2 * delta);
+        }
+
+
+
+        // if(turrets.length > 0){
+        //   // console.log(turrets);
+        //   ballbound = ballray.intersectObjects([...turrets, objects["stage.glb"].scene.children[0]]);
+        // } else {
+        // }
+
+        if(t.timeDelta > t.timeMove){
+          t.state = "rot";
+          t.moving = false;
+        }
+        break;
+      default: t.state = tankStates[getRandomInt(tankStates.length-1)];
+    }
+    t.timeDelta += delta;
+    // debug.innerHTML=`<pre>${JSON.stringify(t, null, 2)}</pre>`;
   }
 
   let xvector    = new THREE.Vector3(0,0,10);
@@ -455,7 +503,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     turrets.forEach((turret, i) => {
       if(turret == null) return;
-      doTurretAction(i);
+      doTurretAction(i, delta);
       if(turretMixer[i])  turretMixer[i].update( delta );
     });
 
@@ -492,7 +540,6 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       ballray.set(balltarget, ballvector);
       let ballbound;
       if(turrets.length > 0){
-        // console.log(turrets);
         ballbound = ballray.intersectObjects([...turrets, objects["stage.glb"].scene.children[0]]);
       } else {
         ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
@@ -524,13 +571,14 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     if(movement[mov_SHOT]){
       running = false;
       const playerMixer = mixer['monitoringo.glb'];
-      playerMixer.clipAction( animations['monitoringo.glb'].Running )  .stop();
-      playerMixer.clipAction( animations['monitoringo.glb'].Breathing ).stop();
-      playerMixer.clipAction( animations['monitoringo.glb'].Shooting ) .play();
+      const playerAnims = animations['monitoringo.glb'];
+      playerMixer.clipAction( playerAnims.Running )  .stop();
+      playerMixer.clipAction( playerAnims.Breathing ).stop();
+      playerMixer.clipAction( playerAnims.Shooting ) .play();
 
-      if( (playerMixer.time-shotstart) >= animations['monitoringo.glb'].Shooting.duration) {
-        playerMixer.clipAction( animations['monitoringo.glb'].Shooting ) .stop();
-        playerMixer.clipAction( animations['monitoringo.glb'].Breathing ).play();
+      if( (playerMixer.time-shotstart) >= playerAnims.Shooting.duration) {
+        playerMixer.clipAction( playerAnims.Shooting ) .stop();
+        playerMixer.clipAction( playerAnims.Breathing ).play();
 
         shotstart = 0;
         walking.stop();
