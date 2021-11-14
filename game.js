@@ -263,7 +263,10 @@ playSound(listener, "sound/test.mp3", 0.5, false);
 
   let xray = new THREE.Raycaster();
   let yray = new THREE.Raycaster();
-
+  // xray.near = 2;
+  // xray.far = 100;
+  // yray.near = 2;
+  // yray.far = 100;
   let direction_x, direction_y;
 
   const animate = function () {
@@ -317,15 +320,15 @@ playSound(listener, "sound/test.mp3", 0.5, false);
       // direction_y = (movement[mov_U] - movement[mov_D]);
 
       if(direction_x || direction_y){
-        xtarget.copy(cube.position); xtarget.z = 1;
-        xvector.y = 0; xvector.x = direction_x; xvector.normalize(); xray.set(xtarget, xvector);
+        xtarget.copy(cube.position); xtarget.z = 1.5;
+        xvector.z = 0; xvector.y = 0; xvector.x = direction_x; xvector.normalize(); xray.set(xtarget, xvector);
         let xbound = xray.intersectObject(objects[1].scene.children[0]);
 
-        ytarget.copy(cube.position); ytarget.z = 1;
-        yvector.x = 0; yvector.y = direction_y; yvector.normalize(); yray.set(ytarget, yvector);
+        ytarget.copy(cube.position); ytarget.z = 1.5;
+        yvector.z = 0; yvector.x = 0; yvector.y = direction_y; yvector.normalize(); yray.set(ytarget, yvector);
         let ybound = yray.intersectObject(objects[1].scene.children[0]);
-      /*
-        debug movement
+      /**/
+        // debug movement
         points[1].x = cube.position.x;
         points[1].y = cube.position.y;
         if(xbound[0]) points[0] = xbound[0].point;
@@ -334,7 +337,7 @@ playSound(listener, "sound/test.mp3", 0.5, false);
         linegeo.setFromPoints(points);
         if(xbound.length>1)console.log("xbound",xbound[0].distance);
         if(ybound.length>1)console.log("ybound",ybound[0].distance);
-      */
+      /**/
         if(xbound.length>0 && xbound[0].distance>1.5){
           cube.position.x += direction_x*(delta*30);
         }
