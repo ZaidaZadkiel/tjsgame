@@ -178,7 +178,7 @@ playSound(listener, "sound/test.mp3", 0.5, false);
 
   var cube = new THREE.Mesh( geometry, material );
   // console.log("obj", objects[1]);
-  let ballz = [];
+  let ballz = [null];
   const createball = () => {
     let plasmaBall = new THREE.Mesh(
       new THREE.SphereGeometry(0.5, 8, 4),
@@ -192,9 +192,16 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     plasmaBall.position.y = cube.position.y+( 1*Math.sin(theta));
     plasmaBall.position.z = 2.5;
 
-    plasmaBall.quaternion.copy(cube.quaternion); // apply camera's quaternion
+    plasmaBall.quaternion.copy(cube.quaternion); // apply cube's quaternion
     scene.add(plasmaBall);
-    ballz.push(plasmaBall);
+    let index = ballz.indexOf(null);
+    if(index==-1) {
+      ballz.push(plasmaBall);
+    } else {
+      ballz[index] = plasmaBall;
+    }
+    console.log("balllen", ballz.length);
+    // ballz.push(plasmaBall);
   };
 
 
@@ -255,18 +262,30 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     false
   );
 
+  // const translateOnAxis = ( pos, axis, distance ) => {
+  //
+	// 	// translate object by distance along axis in object space
+	// 	// axis is assumed to be normalized
+  //
+	// 	pos.copy( axis ).applyQuaternion( this.quaternion );
+  //
+	// 	this.position.add( pos.multiplyScalar( distance ) );
+  //
+	// 	return this;
+  //
+	// }
+
   let xvector    = new THREE.Vector3(0,0,10);
   let yvector    = new THREE.Vector3(0,0,10);
   let xtarget    = new THREE.Vector3(0,0,10);
   let ytarget    = new THREE.Vector3(0,0,10);
+  let balltarget = new THREE.Vector3(0,0, 0);
+  let ballvector = new THREE.Vector3(0,0, 0);
 
-
-  let xray = new THREE.Raycaster();
-  let yray = new THREE.Raycaster();
-  // xray.near = 2;
-  // xray.far = 100;
-  // yray.near = 2;
-  // yray.far = 100;
+  let xray       = new THREE.Raycaster();
+  let yray       = new THREE.Raycaster();
+  let ballray    = new THREE.Raycaster();
+;
   let direction_x, direction_y;
 
   const animate = function () {
@@ -279,8 +298,32 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     //   points[3] = zerovector;
     // }
 
-    ballz.forEach((b) => {
+    ballz.forEach((b, i) => {
+      if(!b) {
+        // console.log("empty ball");
+        return;
+      }
+      balltarget.x=(b.position.x);
+      balltarget.y=(b.position.y);
+      balltarget.z=4;//(b.position.z);
+
       b.translateY(-40 * delta); // move along the local z-axis
+
+      ballvector.x=(cube.position.x - balltarget.x);
+      ballvector.y=(cube.position.y - balltarget.y);
+      ballvector.z=4;//(b.position.z);
+      ballvector.normalize();
+
+      ballray.set(balltarget, ballvector);
+      let ballbound = ballray.intersectObject(objects[1].scene.children[0]);
+      if(ballbound[0] && ballbound[0].distance < 2){
+        // console.log(ballbound);
+        b.position.x=1000;
+        b.position.y=1000;
+        b.position.z=1000;
+        ballz[i] = null;
+      }
+
     });
 
     direction_x = (movement[mov_R] - movement[mov_L]);
@@ -310,7 +353,6 @@ playSound(listener, "sound/test.mp3", 0.5, false);
         mixer[0].clipAction( animations['monitoringo.glb'].Shooting ) .stop();
         mixer[0].clipAction( animations['monitoringo.glb'].Breathing ).play();
 
-        // movement[mov_SHOT] = 0;
         shotstart          = 0;
         shot();
 
@@ -327,7 +369,7 @@ playSound(listener, "sound/test.mp3", 0.5, false);
         ytarget.copy(cube.position); ytarget.z = 1.5;
         yvector.z = 0; yvector.x = 0; yvector.y = direction_y; yvector.normalize(); yray.set(ytarget, yvector);
         let ybound = yray.intersectObject(objects[1].scene.children[0]);
-      /**/
+      /**
         // debug movement
         points[1].x = cube.position.x;
         points[1].y = cube.position.y;
@@ -349,12 +391,6 @@ playSound(listener, "sound/test.mp3", 0.5, false);
       } else {
         setAnimation(false);
       }
-
-      // let rotz = Math.atan2(
-      //    direction_x,
-      //   -direction_y
-      // ); // witchcraft from stockoverflaw
-
     }
 
     camera.position.x = cube.position.x;
