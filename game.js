@@ -88,7 +88,6 @@ playSound(listener, "sound/test.mp3", 0.5, false);
 
 
 
-  console.log("flag");
   var scenemixer = new THREE.AnimationMixer( scene );
   var mixer      = [];
   var objects    = [];
@@ -109,25 +108,23 @@ playSound(listener, "sound/test.mp3", 0.5, false);
           mixer[i]      = new THREE.AnimationMixer( gltf.scene );
           objects[i]    = gltf;
           gltf.animations.forEach((item, i) => {
-            console.log("why", item.name);
             if(!animations[path]) animations[path] = {};
             animations[path][item.name] = item;
           });
 
           // console.log(objects[i]);
-          console.log("gltf", i, mixer, animations, gltf.animations);
+          // console.log("gltf", i, mixer, animations, gltf.animations);
           // console.log(gltf.animations);
           if(Array.isArray(gltf.animations) && gltf.animations[0]){
             var action = mixer[i].clipAction( gltf.animations[ 0 ] )
             // action.loop = THREE.LoopRepeat;
             action.reset().play();
-            console.log("loled");
           }
 
           scene.add( gltf.scene );
 
           if(i == 0){
-            console.log("cube", gltf.scene);
+            // console.log("cube", gltf.scene);
             cube = gltf.scene;
             // magic values :D
             mixer[0].clipAction( animations['monitoringo.glb'].Shooting ).clampWhenFinished=true;
@@ -177,14 +174,20 @@ playSound(listener, "sound/test.mp3", 0.5, false);
   );
 
   var cube = new THREE.Mesh( geometry, material );
+  var plasmaballmaterial = new THREE.MeshBasicMaterial({
+                             color: "aqua"
+                           });
+  var explosionmaterial  = new THREE.MeshBasicMaterial({
+                             color: "yellow",
+                             map: imgloader.load("img/Lava_Texture_preview.jpg")
+                           });
   // console.log("obj", objects[1]);
   let ballz = [null];
   const createball = () => {
     let plasmaBall = new THREE.Mesh(
-      new THREE.SphereGeometry(0.5, 8, 4),
-      new THREE.MeshBasicMaterial({
-                 color: "aqua"
-               }));
+      new THREE.SphereGeometry(0.5, 4, 4),
+      plasmaballmaterial
+    );
 
     let theta = -cube.rotation.z ;// * Math.PI/180;
 
@@ -193,6 +196,7 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     plasmaBall.position.z = 2.5;
 
     plasmaBall.quaternion.copy(cube.quaternion); // apply cube's quaternion
+
     scene.add(plasmaBall);
     let index = ballz.indexOf(null);
     if(index==-1) {
@@ -203,6 +207,31 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     console.log("balllen", ballz.length);
     // ballz.push(plasmaBall);
   };
+
+  let boomz = [null];
+  const createexplosion = (ball) => {
+    let plasmaBall = new THREE.Mesh(
+      new THREE.SphereGeometry(4, 4, 4),
+      explosionmaterial
+    );
+
+    plasmaBall.position.x = ball.position.x;//-( 1*Math.cos(theta));
+    plasmaBall.position.y = ball.position.y;//+( 1*Math.sin(theta));
+    plasmaBall.position.z = 2.5;
+
+    plasmaBall.scale.x=0.15;
+    plasmaBall.scale.y=0.15;
+    plasmaBall.scale.z=0.15;
+
+    scene.add(plasmaBall);
+    let index = boomz.indexOf(null);
+    if(index==-1) {
+      boomz.push(plasmaBall);
+    } else {
+      boomz[index] = plasmaBall;
+    }
+    return;
+  }
 
 
   var running = false;
@@ -262,19 +291,6 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     false
   );
 
-  // const translateOnAxis = ( pos, axis, distance ) => {
-  //
-	// 	// translate object by distance along axis in object space
-	// 	// axis is assumed to be normalized
-  //
-	// 	pos.copy( axis ).applyQuaternion( this.quaternion );
-  //
-	// 	this.position.add( pos.multiplyScalar( distance ) );
-  //
-	// 	return this;
-  //
-	// }
-
   let xvector    = new THREE.Vector3(0,0,10);
   let yvector    = new THREE.Vector3(0,0,10);
   let xtarget    = new THREE.Vector3(0,0,10);
@@ -292,11 +308,18 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     requestAnimationFrame( animate );
     let delta   = clock.getDelta();
 
-    // points[0] = cube.position;
-    // if(ballz[ballz.length-1]) {
-    //   points[2] = ballz[ballz.length-1].position;
-    //   points[3] = zerovector;
-    // }
+    boomz.forEach((b, i) => {
+      if(b==null) return;
+      b.scale.x+=15 * delta;
+      b.scale.y+=15 * delta;
+      b.scale.z+=15 * delta;
+      if(b.scale.z > 2){
+        console.log("bye");
+        scene.remove(b);
+        boomz[i] = null;
+      }
+    });
+
 
     ballz.forEach((b, i) => {
       if(!b) {
@@ -307,7 +330,7 @@ playSound(listener, "sound/test.mp3", 0.5, false);
       balltarget.y=(b.position.y);
       balltarget.z=4;//(b.position.z);
 
-      b.translateY(-40 * delta); // move along the local z-axis
+      b.translateY(-40 * delta); // move along the local y-axis
 
       ballvector.x=(cube.position.x - balltarget.x);
       ballvector.y=(cube.position.y - balltarget.y);
@@ -318,9 +341,8 @@ playSound(listener, "sound/test.mp3", 0.5, false);
       let ballbound = ballray.intersectObject(objects[1].scene.children[0]);
       if(ballbound[0] && ballbound[0].distance < 2){
         // console.log(ballbound);
-        b.position.x=1000;
-        b.position.y=1000;
-        b.position.z=1000;
+        createexplosion(b);
+        scene.remove(b);
         ballz[i] = null;
       }
 
