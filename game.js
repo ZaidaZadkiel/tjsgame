@@ -95,6 +95,11 @@ audioLoader.load( "./sound/test.mp3", function( buffer ) {
   sound.setLoop( true );
   sound.setVolume( 0.05 );
   sound.play();
+
+  createTurret();
+  createTurret();
+  createTurret();
+
 });
 audioLoader.load( "./sound/tank.mp3", function( buffer ) {
   console.log("tank");
@@ -217,22 +222,23 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   );
 
 
-    const shot = () => {
-      if(movement[mov_SHOT]==1 && shotstart == 0){
-        shotstart = mixer['monitoringo.glb'].time;
-        mixer['monitoringo.glb'].clipAction( animations['monitoringo.glb'].Shooting ).reset();
-        createball();
-      }
+  const shot = () => {
+    if(movement[mov_SHOT]==1 && shotstart == 0){
+      shotstart = mixer['monitoringo.glb'].time;
+      mixer['monitoringo.glb'].clipAction( animations['monitoringo.glb'].Shooting ).reset();
+      createball();
     }
+  }
 
     document.addEventListener(
       "keydown",
       (event) => {
+          // if(movement[mov_SHOT]==1) return;
           switch(event.which){
             // case 80: createTurret(); break;
             case 32:
                     if(movement[mov_SHOT]==0) shotstart = 0;
-                    movement[mov_SHOT] = 1;
+                    movement[mov_SHOT] = 2;
                     break; //cant move when shooting
             case 38: movement[mov_U]    = 1; break;
             case 40: movement[mov_D]    = 1; break;
@@ -248,7 +254,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       "keyup",
       (event) => {
           switch(event.which){
-            case 32: movement[mov_SHOT] = 0; break; //cant move when shooting
+            case 32: movement[mov_SHOT]--;   break; //cant move when shooting
             case 38: movement[mov_U]    = 0; break;
             case 40: movement[mov_D]    = 0; break;
             case 37: movement[mov_L]    = 0; break;
@@ -331,7 +337,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     const tanksound = new THREE.PositionalAudio(listener);
     tanksound.setBuffer(tankmotor);
-    tanksound.setVolume(2);
+    tanksound.setVolume(8);
     tanksound.setLoop(true);
     turret.add(tanksound);
     turret.add(lifemeter);
@@ -554,8 +560,9 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       case "shot":
           if(t.moving == false){
             // console.log("flag");
-            enemixer.clipAction(eneanim.BODYROLLIN).stop();
+            enemixer.clipAction(eneanim.BODYROLLIN) .stop();
             enemixer.clipAction(eneanim.BODYSHOOTIN).play();
+            enemixer.clipAction(eneanim.CANSHOOTIN) .play();
             t.timeDelta = 0;
             t.moving=true;
             createcannon(turret)
@@ -564,7 +571,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
           if( t.timeDelta >= eneanim.BODYSHOOTIN.duration) {
             enemixer.clipAction(eneanim.BODYSHOOTIN).stop();
-            enemixer.clipAction(eneanim.BODYROLLIN).play();
+            enemixer.clipAction(eneanim.CANSHOOTIN) .stop();
+            enemixer.clipAction(eneanim.BODYROLLIN) .play();
 
             t.moving = false;
             t.state  = "rot";
@@ -582,9 +590,9 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   let lastspawn = 0;
   const updateStats = () => debug.innerHTML = `<pre>
   HEALTH: ${health < 0 ? "💀💀💀" : Array(health).fill('💟').join('')}
-  SCORE:  ${score}
-  LEVEL:  ${Array(level).fill('🪖').join('')}
-  last:   ${lastspawn.toFixed(2)} / ${(20-level)}
+  SCORE:  ${score} (${turrets.length})
+  LEVEL:  ${level>10?Array(Math.floor(level/10)).fill('🐲').join(''):''}${Array(level%11).fill('🪖').join('')}
+  NEXT:   ${((20-level)-lastspawn).toFixed(2)}
   </pre>`;
   updateStats();
 
@@ -746,20 +754,25 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     }
 
     if(movement[mov_SHOT]){
-      running = false;
       const playerMixer = mixer['monitoringo.glb'];
       const playerAnims = animations['monitoringo.glb'];
-      playerMixer.clipAction( playerAnims.Running )  .stop();
-      playerMixer.clipAction( playerAnims.Breathing ).stop();
-      playerMixer.clipAction( playerAnims.Shooting ) .play();
+      if(shotstart==0){
+        running = false;
+        playerMixer.clipAction( playerAnims.Running )  .stop();
+        playerMixer.clipAction( playerAnims.Breathing ).stop();
+        playerMixer.clipAction( playerAnims.Shooting ) .play();
+        walking.stop();
+        createball();
+      }
 
-      if( (playerMixer.time-shotstart) >= playerAnims.Shooting.duration) {
+      shotstart+=delta;
+
+      if( shotstart >= playerAnims.Shooting.duration) {
         playerMixer.clipAction( playerAnims.Shooting ) .stop();
         playerMixer.clipAction( playerAnims.Breathing ).play();
 
         shotstart = 0;
-        walking.stop();
-        shot();
+        movement[mov_SHOT] = movement[mov_SHOT]==2 ? 2 : 0;
         // console.log(cube.position)
       }
     } else {
