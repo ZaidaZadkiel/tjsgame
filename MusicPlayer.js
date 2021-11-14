@@ -4,12 +4,9 @@
 
 import * as THREE         from 'https://cdn.skypack.dev/three@0.134.0';
 
-
-
+let sound         = new THREE.Audio(listener);
+const audioLoader = new THREE.AudioLoader();
 export default function playSound(listener, src, volume, loop){
-  let sound = new THREE.Audio(listener);
-
-  const audioLoader = new THREE.AudioLoader();
   console.log("trying", src);
   audioLoader.load( src, function( buffer ) {
   	sound.setBuffer( buffer );
@@ -17,11 +14,4 @@ export default function playSound(listener, src, volume, loop){
   	sound.setVolume( 0.5 );
   	sound.play();
   });
-
-    // let sound = new Audio(src);
-    //
-    // sound.volume = volume;
-    // sound.loop = loop;
-    //
-    // sound.play();
 }

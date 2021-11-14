@@ -1,4 +1,3 @@
-  import playSound          from './MusicPlayer.js'
   import * as THREE         from 'https://cdn.skypack.dev/three@0.134.0';
   import { FXAAShader }     from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/shaders/FXAAShader.js';
   import { EffectComposer } from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/postprocessing/EffectComposer.js';
@@ -11,9 +10,6 @@
 
   renderer.setSize( window.innerWidth, window.innerHeight );
   document.body.appendChild( renderer.domElement );
-
-  const listener = new THREE.AudioListener();
-  camera.add( listener );
 
   import { OrbitControls }   from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/controls/OrbitControls.js';
   import { GLTFLoader }      from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/loaders/GLTFLoader.js';
@@ -80,8 +76,35 @@
 
 //-----Sound--------------------------
 
-playSound(listener, "sound/test.mp3", 0.5, false);
 
+const listener = new THREE.AudioListener();
+camera.add( listener );
+
+let sound = new THREE.Audio(listener);
+let pew   = null; //new THREE.AudioBuffer(listener);
+let bang  = null; //new THREE.AudioBuffer(listener);
+scene.add(sound);
+
+const audioLoader = new THREE.AudioLoader();
+audioLoader.load( "./sound/test.mp3", function( buffer ) {
+  console.log("uh");
+  sound.setBuffer( buffer );
+  sound.setLoop( true );
+  sound.setVolume( 0.125 );
+  sound.play();
+});
+audioLoader.load( "./sound/pew.mp3", function( buffer ) {
+  console.log("pew");
+  pew =  buffer;
+  // pew.setLoop( false );
+  // pew.setVolume( 1 );
+});
+audioLoader.load( "./sound/bang.mp3", function( buffer ) {
+  console.log("bang");
+  bang = buffer;
+  // pew.setBuffer( buffer );
+  // pew.setLoop( false );
+});
 //--------------------------------------
 
 
@@ -197,14 +220,22 @@ playSound(listener, "sound/test.mp3", 0.5, false);
 
     plasmaBall.quaternion.copy(cube.quaternion); // apply cube's quaternion
 
+    const plasmapew = new THREE.PositionalAudio(listener);
+    plasmapew.setBuffer(pew);
+    plasmapew.setVolume(10);
+    plasmapew.play();
+    plasmaBall.add(plasmapew);
+
+    // plasmaBall.children[0].play();
     scene.add(plasmaBall);
+
     let index = ballz.indexOf(null);
     if(index==-1) {
       ballz.push(plasmaBall);
     } else {
       ballz[index] = plasmaBall;
     }
-    console.log("balllen", ballz.length);
+    // console.log("balllen", ballz.length);
     // ballz.push(plasmaBall);
   };
 
@@ -222,6 +253,12 @@ playSound(listener, "sound/test.mp3", 0.5, false);
     plasmaBall.scale.x=0.15;
     plasmaBall.scale.y=0.15;
     plasmaBall.scale.z=0.15;
+
+    const plasmabang = new THREE.PositionalAudio(listener);
+    plasmabang.setBuffer(bang);
+    plasmabang.setVolume(10);
+    plasmabang.play();
+    plasmaBall.add(plasmabang);
 
     scene.add(plasmaBall);
     let index = boomz.indexOf(null);
@@ -314,7 +351,7 @@ playSound(listener, "sound/test.mp3", 0.5, false);
       b.scale.y+=15 * delta;
       b.scale.z+=15 * delta;
       if(b.scale.z > 2){
-        console.log("bye");
+        // console.log("bye");
         scene.remove(b);
         boomz[i] = null;
       }
