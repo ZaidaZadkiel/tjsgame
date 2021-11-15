@@ -7,34 +7,45 @@
 		<style>
 			body {
 				background-color: linen;
-				margin: 0px;
-				text-align: center;
+				margin:           0px;
+				text-align:       center;
 			}
 
 			h1 {
-				color: maroon;
+				color:       maroon;
 				margin-left: 40px;
 			}
 			#info {
 				background-color: black;
-				position: absolute;
-				text-align: center;
-		    width: 50%;
-		    height: 50%;
-		    top: 75%;
-		    left: 50%;
-		    margin-left: -25%; /* margin is -0.5 * dimension */
-		    margin-top: -25%;
-
+				opacity: 0.25;
+				position:         absolute;
+				text-align:       center;
+		    width:            50%;
+		    height:           50%;
+		    top:              75%;
+		    left:             50%;
+		    margin-left:      -25%; /* margin is -0.5 * dimension */
+		    margin-top:       -25%;
+				font-family:      monospace;;
+				font-size:			  2em;
 			}
+			#valign {
+			  margin:        0;
+			  position:      absolute;
+			  top:           50%;
+			  left:          50%;
+			  -ms-transform: translate(-50%, -50%);
+			  transform:     translate(-50%, -50%);
+			}
+
 			#debug {
-				text-align: left;
-				margin-left: 1em;
-				margin-top: 1em;
-				color: white;
-				font-family: monospace;
-				font-size:1.5em;
-				position: absolute;
+				text-align:   left;
+				margin-left:  1em;
+				margin-top:   1em;
+				color:        white;
+				font-family:  monospace;
+				font-size:    1.5em;
+				position:     absolute;
 			}
 		</style>
 	</head>
@@ -50,11 +61,15 @@
 	// <script type="module" src="game.js">
 	</script>
 	<body>
+
 	<div id="debug">hi</div>
+
 	<div id="info" onclick="lolgame()">
-		Click to PLAY<br/>
-		Keyboard arrows to move<br/>
-		Space to shoot!
+		<div id="valign">
+			Click to PLAY<br/>
+			Keyboard arrows to move<br/>
+			Space to shoot!
+		</div>
 	</div>
 
 	</body>

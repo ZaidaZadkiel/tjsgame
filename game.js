@@ -4,6 +4,8 @@
   import { ShaderPass }     from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/postprocessing/ShaderPass.js';
   import { RenderPass }     from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/postprocessing/RenderPass.js';
 
+  let demo = false;
+
   const scene    = new THREE.Scene();
   const camera   = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 10, 100 );
   const renderer = new THREE.WebGLRenderer();
@@ -43,7 +45,7 @@
   scene.add( line );
 
   camera.up = new THREE.Vector3( 0, 0 , 1 );
-  camera.position.z =  55;
+  camera.position.z =  demo==true ? 15 : 55;
   camera.position.y = -30;
 
   const environment    = new RoomEnvironment();
@@ -233,6 +235,10 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     document.addEventListener(
       "keydown",
       (event) => {
+          // let d = Object.keys(animations['monitoringo.glb']).forEach((item, i) => {
+          //   console.log(item, "isRunning", mixer['monitoringo.glb'].clipAction(animations['monitoringo.glb'][item]).isRunning());
+          // });
+
           // if(movement[mov_SHOT]==1) return;
           switch(event.which){
             // case 80: createTurret(); break;
@@ -324,9 +330,25 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     if(turrets.length > 10) return;
     let turret = objects["turret.glb"].scene.clone();
     let lifemeter = life.clone();
+    turret.add(lifemeter);
 
-    // turret.position.set(10,10,0);
     turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
+    //this sucks ... kind-of recursive copy children and children of children[0] into a flat array to iterate
+    //bcz js is awesome like that
+    [
+      turret,
+      ...turret.children,
+      ...turret.children[0].children
+    ].forEach((item, i) => {
+      // console.log(item, objects["turret.glb"].scene.children[i]);
+
+      //ignore added objects with no name
+      if(item.material){
+        item.material = item.material.clone();
+        console.log("cloning",item.name, item.material.emissive);
+      }
+    });
+
 
     const t_mixer = new THREE.AnimationMixer(turret);
     const turretAnims = animations["turret.glb"];
@@ -334,15 +356,12 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     t_mixer.clipAction(turretAnims.BODYROLLIN).play();
     t_mixer.clipAction(turretAnims.WHEELROLLIN).play();
 
-
     const tanksound = new THREE.PositionalAudio(listener);
     tanksound.setBuffer(tankmotor);
     tanksound.setVolume(8);
     tanksound.setLoop(true);
-    turret.add(tanksound);
-    turret.add(lifemeter);
     tanksound.play();
-    // console.log("wat");
+    turret.add(tanksound);
 
     scene.add(turret);
 
@@ -385,8 +404,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     let theta = -cube.rotation.z ;// * Math.PI/180;
 
-    plasmaBall.position.x = cube.position.x-( 1*Math.cos(theta));
-    plasmaBall.position.y = cube.position.y+( 1*Math.sin(theta));
+    plasmaBall.position.x = cube.position.x-( 0.8*Math.cos(theta));
+    plasmaBall.position.y = cube.position.y+( 0.8*Math.sin(theta));
     plasmaBall.position.z = 2.5;
 
     plasmaBall.quaternion.copy(cube.quaternion); // apply cube's quaternion
@@ -502,6 +521,23 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     const eneanim  = animations['turret.glb'];
     const enemixer = turretMixer[index];
+
+    [    turret,
+      ...turret.children,
+      ...turret.children[0].children
+    ].forEach((item, i) => {
+      if(
+        item.material &&
+        item.material.emissive &&
+        item.material.emissive.r>=0
+      ) {
+        item.material.emissive.r-=5*delta;//setHex(item.material.emissive.getHex()-1*delta);
+        item.material.emissive.g-=5*delta;//setHex(item.material.emissive.getHex()-1*delta);
+        item.material.emissive.b-=5*delta;//setHex(item.material.emissive.getHex()-1*delta);
+      }
+    });
+    // if(t.material && t.material.emissive.getHex() ) t.material.emissive.setHex(t.material.emissive.getHex()/2);
+
     // turret.translateY(-10 * delta);
     switch(t.state){
       case "rot":
@@ -595,6 +631,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   NEXT:   ${((20-level)-lastspawn).toFixed(2)}
   </pre>`;
   updateStats();
+
 
   let xvector    = new THREE.Vector3(0,0,10);
   let yvector    = new THREE.Vector3(0,0,10);
@@ -722,9 +759,20 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         );
         if(turretindex!=-1){
           score++;
-          turretAction[turretindex].health--;
-          turretAction[turretindex].life.scale.x=turretAction[turretindex].health/10;
-          if(turretAction[turretindex].health<0){
+          let ta = turretAction[turretindex];
+          let t = ballbound[0].object.parent;
+          //this sucks
+          [ t,
+            ...t.children,
+            ...t.children[0].children
+          ].forEach((item, i) => {
+            if(item.material && item.material.emissive) item.material.emissive.setHex(0xffffff);
+          });
+
+
+          ta.health--;
+          ta.life.scale.x=ta.health/10;
+          if(ta.health<0){
             score+=10;
             level++;
             removeturret(turretindex);
@@ -761,7 +809,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         playerMixer.clipAction( playerAnims.Running )  .stop();
         playerMixer.clipAction( playerAnims.Breathing ).stop();
         playerMixer.clipAction( playerAnims.Shooting ) .play();
-        walking.stop();
+        if(walking && walking.source) walking.stop();
         createball();
       }
 
@@ -811,9 +859,15 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       }
     }
 
-    camera.position.x = cube.position.x;
-    camera.position.y = cube.position.y-1;
-    camera.lookAt(cube.position);
+    if(demo && turrets[0]){
+      camera.position.x = turrets[0].position.x;
+      camera.position.y = turrets[0].position.y-10;
+      camera.lookAt(turrets[0].position);
+    } else {
+      camera.position.x = cube.position.x;
+      camera.position.y = cube.position.y-1;
+      camera.lookAt(cube.position);
+    }
 
     if(mixer) Object.keys(mixer).forEach((name) => {
                 // console.log(name);
