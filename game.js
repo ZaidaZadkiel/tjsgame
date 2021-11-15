@@ -367,7 +367,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
                            });
 
   const planelife  = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} );
-  const life  = new THREE.Mesh( new THREE.PlaneGeometry( 4, 1 ), planelife );
+  const life  = new THREE.Mesh( new THREE.PlaneGeometry( 4, 0.3 ), planelife );
   life.position.x = 0;
   life.position.y = 0;
   life.position.z = 7;
