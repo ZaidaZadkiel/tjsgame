@@ -4,7 +4,9 @@
   import { ShaderPass }     from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/postprocessing/ShaderPass.js';
   import { RenderPass }     from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/postprocessing/RenderPass.js';
 
-  let demo = false;
+  let demo      = false;
+  var demotime  = 0;
+  var demoindex = 0;
 
   const scene    = new THREE.Scene();
   const camera   = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 10, 100 );
@@ -81,7 +83,7 @@
 
 
 const listener = new THREE.AudioListener();
-const audioDebug = true;
+const audioDebug = false;
 
 
 let sound     = new THREE.Audio(listener);
@@ -90,7 +92,7 @@ let bang      = null; //new THREE.AudioBuffer(listener);
 let taptap    = null;
 let walking   = null;
 let tankmotor = null
-scene.add(sound);
+let kapow     = null
 
 const audioLoader = new THREE.AudioLoader();
 audioLoader.load( "./sound/test.mp3", function( buffer ) {
@@ -116,6 +118,10 @@ audioLoader.load( "./sound/pew.mp3", function( buffer ) {
 audioLoader.load( "./sound/bang.mp3", function( buffer ) {
   console.log("bang");
   bang = buffer;
+});
+audioLoader.load( "./sound/kapow.mp3", function( buffer ) {
+  console.log("kapow");
+  kapow = buffer;
 });
 audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   console.log("taptap");
@@ -324,10 +330,11 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     createexplosion(turrets[index]);
 
     if(!audioDebug) {
-      console.log(
-        "children", turrets[index].children,
-        "find", turrets[index].children.find(k=>k.type=='Audio').stop()
-      );
+      // console.log(
+      //   "children", turrets[index].children,
+      //   "find", turrets[index].children.find(k=>k.type=='Audio').stop()
+      // );
+      turrets[index].children.find(k=>k.type=='Audio').stop();
     }
 
     scene.remove(turrets[index]);
@@ -339,28 +346,35 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
   const createTurret = () => {
     if(turrets.length > 10) return;
+
+    const cloneMaterial = (item) => {
+      //material outline is defined in blender file
+      if(!item.material || item.material.name == "outline") return;
+      item.material = item.material.clone();
+      // console.log("item.material", item.material.name)
+    };
+
     let turret = objects["turret.glb"].scene.clone();
     let lifemeter = life.clone();
     turret.add(lifemeter);
 
-    // turret.position.set(0,0,0);
+    // turret.position.set(1,1,0);
     turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
 
-    //this sucks ... kind-of recursive copy children and children of children[0] into a flat array to iterate
-    //bcz js is awesome like that
-    [
-      turret,
-      ...turret.children,
-      ...turret.children[0].children
-    ].forEach((item, i) => {
-      // console.log(item, objects["turret.glb"].scene.children[i]);
-
-      //ignore added objects with no name
-      if(item.material){
-        item.material = item.material.clone();
-        // console.log("cloning",item.name, item.material.emissive);
+    cloneMaterial(turret);
+    var i = turret.children.length;
+    console.log(i, turret.children.length)
+    while(i--){
+      cloneMaterial(turret.children[i])
+      if(turret.children[i].children.length){
+        var n = turret.children[i].children.length;
+        while(n--) cloneMaterial(turret.children[i].children[n]);
       }
-    });
+
+    }
+    //turret.children[0].children
+
+
 
 
     const t_mixer = new THREE.AnimationMixer(turret);
@@ -425,7 +439,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     const plasmapew = new THREE.PositionalAudio(listener);
     plasmapew.setBuffer(pew);
-    plasmapew.setVolume(2);
+    plasmapew.setVolume(10);
     if(!audioDebug) plasmapew.play();
 
     plasmaBall.add(plasmapew);
@@ -455,8 +469,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     plasmaBall.quaternion.copy(mesh.quaternion); // apply mesh's quaternion
 
     const plasmapew = new THREE.PositionalAudio(listener);
-    plasmapew.setBuffer(pew);
-    plasmapew.setVolume(2);
+    plasmapew.setBuffer(kapow);
+    plasmapew.setVolume(10);
     if(!audioDebug) plasmapew.play();
 
     plasmaBall.add(plasmapew);
@@ -505,7 +519,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
   let damageTime = 0;
   const doDamaged = () => {
-    movement.fill(0);
+    // movement.fill(0);
     movement[mov_HURT] = 1;
     const playerMixer = mixer     ['monitoringo.glb'];
     const playerAnims = animations['monitoringo.glb'];
@@ -550,6 +564,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     const eneanim  = animations['turret.glb'];
     const enemixer = turretMixer[index];
 
+    // console.log(turret);
     [    turret,
       ...turret.children,
       ...turret.children[0].children
@@ -559,13 +574,18 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         item.material.emissive &&
         item.material.emissive.r>=0
       ) {
-        item.material.emissive.r-=5*delta;//setHex(item.material.emissive.getHex()-1*delta);
-        item.material.emissive.g-=5*delta;//setHex(item.material.emissive.getHex()-1*delta);
-        item.material.emissive.b-=5*delta;//setHex(item.material.emissive.getHex()-1*delta);
+        item.material.emissive.r-=4*delta;//setHex(item.material.emissive.getHex()-1*delta);
+        item.material.emissive.g-=4*delta;//setHex(item.material.emissive.getHex()-1*delta);
+        item.material.emissive.b-=4*delta;//setHex(item.material.emissive.getHex()-1*delta);
+        if(item.material.emissive.r<0){
+          item.material.emissive.r=0;
+          item.material.emissive.g=0;
+          item.material.emissive.b=0;
+        }
       }
     });
     // if(t.material && t.material.emissive.getHex() ) t.material.emissive.setHex(t.material.emissive.getHex()/2);
-
+// t.state="rot";
     // turret.translateY(-10 * delta);
     switch(t.state){
       case "rot":
@@ -573,11 +593,28 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
             t.direction = getRandomInt(2)==1 ? -1 : 1; //rotate left or right
             t.timeMove  = getRandomInt(3000)/1000; // how long to rot
             t.timeDelta = 0;
-            t.moving = true;
+            t.moving    = true;
+            // console.log(t)
             break;
         }
-        turret.rotateZ((0.75 * t.direction) * delta);
-        if(t.timeDelta > t.timeMove){
+
+        if(turret.position.distanceTo(cube.position) < 35) {
+          let vectorB = cube.position;
+          let vectorA = turret.position;
+          let radang  = Math.atan2(
+                          vectorA.y - vectorB.y,
+                          vectorA.x - vectorB.x
+                        );
+          let a = turret.rotation._z+1.6;
+          let b = radang;
+          t.angleTo   = Math.atan2(Math.sin(b-a), Math.cos(b-a))
+
+          turret.rotateZ(0.01 * Math.sign(t.angleTo));
+        } else {
+          turret.rotateZ(0.01 * t.direction);
+        }
+
+        if(t.timeDelta > t.timeMove || Math.abs(t.angleTo) < 0.05){
           t.state = "mov";
           t.moving = false;
         }
@@ -591,31 +628,38 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
           break;
         }
 
+        const ray = () => {
+          balltarget.copy(turret.position);
+          balltarget.z=3;
 
-        balltarget.copy(turret.position);
-        balltarget.z=3;
+          turret.translateY(t.reverse);
 
-        turret.translateY(t.reverse);
+          ballvector.x=(turret.position.x-balltarget.x)*10;
+          ballvector.y=(turret.position.y-balltarget.y)*10;
+          ballvector.z=0;
+          ballvector.normalize();
 
-        ballvector.x=(turret.position.x-balltarget.x)*10;
-        ballvector.y=(turret.position.y-balltarget.y)*10;
-        ballvector.z=3;
-        ballvector.normalize();
+          ballray.set(balltarget, ballvector);
+          let ballbound;
+          ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
 
-        ballray.set(balltarget, ballvector);
-        let ballbound;
-        ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
+          turret.position.copy(balltarget);
+          turret.position.z=0;
 
-        turret.position.copy(balltarget);
-        turret.position.z=0;
-
-        if(ballbound[0] && ballbound[0].distance > 4){
-          turret.translateY((6 * delta)*t.reverse);
-        } else {
-          t.reverse = 1;
+          if(ballbound[0] && ballbound[0].distance > 4){
+            turret.translateY((6 * delta)*t.reverse);
+          } else {
+            t.reverse = 1;
+          }
         }
 
-        if(t.timeDelta > t.timeMove){
+        ray();
+
+        // debug.innerHTML=`<pre>
+        //   ${turret.position.distanceTo(cube.position)}
+        // </pre>`
+
+        if(t.timeDelta > t.timeMove || turret.position.distanceTo(cube.position) < 15){
           t.state = "shot";
           t.moving = false;
         }
@@ -660,7 +704,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   let score     = 0;
   let level     = 0;
   let lastspawn = 0;
-  const updateStats = () => debug.innerHTML = `<pre>
+
+  const updateStats = () => debug.innerHTML=`<pre>
   HEALTH: ${health < 0 ? "💀💀💀" : Array(health).fill('💟').join('')}
   SCORE:  ${score} (${turrets.length})
   LEVEL:  ${level>10?Array(Math.floor(level/10)).fill('🐲').join(''):''}${Array(level%11).fill('🪖').join('')}
@@ -680,7 +725,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   let yray       = new THREE.Raycaster();
   let ballray    = new THREE.Raycaster();
 
-
+  let damagePos  = new THREE.Vector3();
   const doCharacterMovement = (delta) => {
     const playerMixer = mixer['monitoringo.glb'];
     const playerAnims = animations['monitoringo.glb'];
@@ -695,16 +740,39 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     ); // witchcraft from stockoverflaw
     if(direction_x || direction_y) cube.rotation.z = rotz;
 
+    switch(true){
+      case (movement[mov_HURT]):         console.log("hurt"); break;
+      case (movement[mov_SHOT]):         console.log("hurt"); break;
+      case (direction_x || direction_y): console.log("hurt"); break;
+    }
+
     if(movement[mov_HURT]){
       damageTime += delta;
-      cube.translateY(20*delta);
-      if(damageTime > playerAnims.Damaged.duration) {
+      direction_x = 0;
+      direction_y = 0;
+      // points[0].copy(cube.position);
+      // cube.translateY(10);
+      // points[1].copy(cube.position);
+      // cube.position.copy(points[0]);
+      // linegeo.setFromPoints(points);
 
+      if(damageTime > playerAnims.Damaged.duration) {
         movement[mov_HURT] = 0;
         playerMixer.clipAction(playerAnims.Damaged).stop();
-        playerMixer.clipAction(playerAnims.Breathing).play();
+        /// UGLY!
+        if(
+          movement[mov_D] ||
+          movement[mov_U] ||
+          movement[mov_L] ||
+          movement[mov_R]
+        ){
+          playerMixer.clipAction(playerAnims.Running).play();
+        } else if (movement[mov_SHOT]) {
+          playerMixer.clipAction(playerAnims.Shooting).play();
+        } else {
+          playerMixer.clipAction(playerAnims.Breathing).play();
+        }
       }
-      return;
     }
 
     if(movement[mov_SHOT]){
@@ -754,35 +822,40 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   }
 
   const doBoomzFrame = (delta) => {
-    boomz.forEach((b, i) => {
-      if(b==null) return;
+    var i = boomz.length;
+    // boomz.forEach((b, i) => {
+    while(i--){
+      var b = boomz[i];
+      if(!b) continue;
       b.scale.x+=15 * delta;
       b.scale.y+=15 * delta;
       b.scale.z+=15 * delta;
       if(b.scale.z > 2){
         scene.remove(b);
-
         boomz.splice(i, 1);//] = null;
       }
-    });
+    }
   }
 
   const doCannonsFrame = (delta) => {
     const deleteCannon = (b, index) => {
       // console.log("wat");
       createexplosion(b);
+      b.position.set(0,0,-10);
       // console.log(cannons.children[1]);
       scene.remove(b);
       cannons.splice(index,1);
     }
 
-    cannons.forEach((b, i) => {
+    var cannonindex = cannons.length;
+    while(cannonindex--) {
+      var b = cannons[cannonindex];
       if(!b) return;
       // console.log(b.position, cube.position, b.position.distanceTo(cube.position));
 
       if(b.position.distanceTo(cube.position) < 4){
         console.log("ouch");
-        deleteCannon(b, i);
+        deleteCannon(b, cannonindex);
         health--;
         doDamaged();
         if(health>0) updateStats();
@@ -804,14 +877,64 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
       let ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
       if(ballbound[0] && ballbound[0].distance < 2 && ballbound[0].object.uuid != b.uuid){
-        deleteCannon(b, i);
+        deleteCannon(b, cannonindex);
       }
-    });
+    }
   }
 
   const doBallzFrame = (delta) => {
-    ballz.forEach((b, i) => {
+
+    const removeball = (b, i) => {
       if(!b) return;
+      // console.log("delet", i, b);
+      createexplosion(b);
+      scene.remove(b);
+      ballz.splice(i, 1); //[i] = null;
+      b.position.set(cube.position)
+    }
+
+    const turretHit = (turretindex) => {
+      // console.log("turretHit", turretindex);
+      score++;
+      let ta = turretAction[turretindex];
+      let t  = turrets[turretindex]; //ballbound[0].object.parent;
+      //this sucks
+      // console.log(t.children);
+      [ t,
+        ...t.children,
+        ...t.children[0].children
+      ].forEach((item, i) => {
+        if(item.material && item.material.emissive) item.material.emissive.setHex(0xffffff);
+      });
+
+      ta.health--;
+      ta.life.scale.x=ta.health/10;
+      if(ta.health<0){
+        score+=10;
+        level++;
+        removeturret(turretindex);
+      }
+      // console.log("turretHitEnd", t, ta);
+    }
+
+    var i = ballz.length;
+    while (i--) {
+      let b = ballz[i];
+      if(!b) continue;
+
+      if(turrets.length > 0){
+        for (let i = 0; i!=turrets.length; i++) {
+          let turret = turrets[i];
+          if(!turret) continue;
+          if(b.position.distanceTo(turret.position) < 6){
+            // console.log("turretsforeach",i, b.position.distanceTo(turret.position))
+            turretHit(i);
+            removeball(b, i);
+            return; // exit frame
+          }
+          // console.log("nothing");
+        } // for (let i = 0; i!=turrets.length; i++)
+      } // if(turrets.length > 0)
 
       balltarget.x=(b.position.x);
       balltarget.y=(b.position.y);
@@ -826,59 +949,32 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
       ballray.set(balltarget, ballvector);
       let ballbound;
-      if(turrets.length > 0){
-        ballbound = ballray.intersectObjects([...turrets, objects["stage.glb"].scene.children[0]]);
-      } else {
-        ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
-      }
+
+      ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
       if(ballbound[0] && ballbound[0].distance < 2){
 
-        let turretindex = turrets.findIndex((k)=>{
-          let target = ballbound[0].object;
-          if(k.uuid        == ballbound[0].object.parent.uuid) return true;
-          if(k.parent.uuid == ballbound[0].object.parent.uuid) return true;
+        // let turretindex = turrets.findIndex((k)=>{
+        //   let target = ballbound[0].object;
+        //   if(k.uuid        == ballbound[0].object.parent.uuid) return true;
+        //   if(k.parent.uuid == ballbound[0].object.parent.uuid) return true;
+        //
+        //   for (var index in k.children) {
+        //     if (k.children[index].uuid == target.uuid) return true;
+        //     if (k.children[index].children[0] && k.children[index].children[0].uuid == target.uuid) return true;
+        //   }
+        //
+        // }); // let turretindex = turrets.findIndex
+        //
+        // if(turretindex!=-1){
+        //   turretHit(turretindex);
+        // }
 
-          for (var index in k.children) {
-            if (k.children[index].uuid == target.uuid) return true;
-            if (k.children[index].children[0] && k.children[index].children[0].uuid == target.uuid) return true;
-          }
-
-        }
-
-          // console.log("find",
-          //   k.name, k.uuid,
-          //   ballbound[0].object.parent.name, ballbound[0].object.parent.uuid);
-          // return k.uuid==ballbound[0].object.parent.uuid}
-        );
-        if(turretindex!=-1){
-          score++;
-          let ta = turretAction[turretindex];
-          let t = ballbound[0].object.parent;
-          //this sucks
-          [ t,
-            ...t.children,
-            ...t.children[0].children
-          ].forEach((item, i) => {
-            if(item.material && item.material.emissive) item.material.emissive.setHex(0xffffff);
-          });
-
-
-          ta.health--;
-          ta.life.scale.x=ta.health/10;
-          if(ta.health<0){
-            score+=10;
-            level++;
-            removeturret(turretindex);
-          }
-        }
         updateStats();
-        createexplosion(b);
-        scene.remove(b);
-        ballz[i] = null;
-      }
+        removeball(b, i);
+      } // if(ballbound[0] && ballbound[0].distance < 2)
 
-    });
-  }
+    }
+  } // const doBallzFrame = (delta) =>
 
   const animate = function () {
     requestAnimationFrame( animate );
@@ -898,10 +994,15 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     doCharacterMovement(delta);
 
-    if(demo && turrets[0]){
-      camera.position.x = turrets[0].position.x;
-      camera.position.y = turrets[0].position.y-10;
-      camera.lookAt(turrets[0].position);
+    if(demo && turrets[demoindex]){
+      demotime += delta;
+      if(demotime > 6){
+        demotime = 0;
+        demoindex = getRandomInt(turrets.length)
+      }
+      camera.position.x = turrets[demoindex].position.x;
+      camera.position.y = turrets[demoindex].position.y-10;
+      camera.lookAt(turrets[demoindex].position);
     } else {
       camera.position.x = cube.position.x;
       camera.position.y = cube.position.y-1;

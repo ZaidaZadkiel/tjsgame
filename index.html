@@ -39,6 +39,7 @@
 			}
 
 			#debug {
+				background-color: #00000080;
 				text-align:   left;
 				margin-left:  1em;
 				margin-top:   1em;
@@ -46,6 +47,11 @@
 				font-family:  monospace;
 				font-size:    1.5em;
 				position:     absolute;
+				padding:      0.1em;
+			}
+			pre {
+				margin-top:0.25em;
+				margin-bottom: 0px;
 			}
 		</style>
 	</head>
@@ -56,13 +62,18 @@
 			script.src = "game.js";
 			script.type = "module";
 			document.head.appendChild(script); //or something of the likes
+
+			var status = document.createElement('div');
+			status.innerHTML = '<div id="debug"><pre>hello</pre></div>';
+			document.body.appendChild(status);
+
 			document.getElementById("info").style.visibility = "hidden";
 		}
 	// <script type="module" src="game.js">
 	</script>
 	<body>
 
-	<div id="debug">hi</div>
+
 
 	<div id="info" onclick="lolgame()">
 		<div id="valign">
