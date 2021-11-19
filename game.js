@@ -29,6 +29,8 @@
 
   manager.onProgress = function ( url, itemsLoaded, itemsTotal ) {
   	console.log( 'Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
+    loadingscreen.style.width=`${(100*itemsLoaded)/itemsTotal}%`;
+    console.log(loadingscreen.style.width)
   };
 
   manager.onError = function ( url ) {
@@ -96,8 +98,7 @@
 
 
   let composer, fxaaPass;
-  fxaaPass = new ShaderPass( FXAAShader );
-
+        fxaaPass   = new ShaderPass( FXAAShader );
   const renderPass = new RenderPass( scene, camera );
   const pixelRatio = renderer.getPixelRatio();
 
@@ -106,7 +107,7 @@
 
 	composer = new EffectComposer( renderer );
 	composer.addPass( renderPass );
-	composer.addPass( fxaaPass );
+	// composer.addPass( fxaaPass );
 
 
 //-----Sound--------------------------
@@ -431,6 +432,10 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   var plasmaballmaterial = new THREE.MeshBasicMaterial({
                              color: "aqua"
                            });
+   var cannonballmaterial = new THREE.MeshBasicMaterial({
+                              color: "yellow"
+                            });
+
   var explosionmaterial  = new THREE.MeshBasicMaterial({
                              color: "yellow",
                              map  : imgloader.load("img/Lava_Texture_preview.jpg")
@@ -446,7 +451,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
 
 
-  let ballz = [null];
+  let ballz = [];
   const createball = () => {
     let plasmaBall = new THREE.Mesh(
       new THREE.SphereGeometry(0.5, 4, 4),
@@ -481,7 +486,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   const createcannon = (mesh) => {
     let plasmaBall = new THREE.Mesh(
       new THREE.SphereGeometry(0.5, 4, 4),
-      plasmaballmaterial
+      cannonballmaterial
     );
 
     let theta = -mesh.rotation.z ;// * Math.PI/180;
