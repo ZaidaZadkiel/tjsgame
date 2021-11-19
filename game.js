@@ -4,6 +4,39 @@
   import { ShaderPass }     from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/postprocessing/ShaderPass.js';
   import { RenderPass }     from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/postprocessing/RenderPass.js';
 
+  let loadingscreen = document.getElementById("progress");
+  loadingscreen.style.visibility="visible";
+
+
+  const manager = new THREE.LoadingManager();
+  manager.onStart = function ( url, itemsLoaded, itemsTotal ) {
+  	console.log( 'Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
+  };
+
+  manager.onLoad = function ( ) {
+  	console.log( 'Loading complete!');
+    loadingscreen.style.visibility="hidden";
+    document.getElementById("info").style.visibility="hidden";
+
+    if(!audioDebug) sound.play();
+    createTurret();
+    createTurret();
+    createTurret();
+
+    animate();
+  };
+
+
+  manager.onProgress = function ( url, itemsLoaded, itemsTotal ) {
+  	console.log( 'Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
+  };
+
+  manager.onError = function ( url ) {
+  	console.log( 'There was an error loading ' + url );
+  };
+
+
+
   let demo      = false;
   var demotime  = 0;
   var demoindex = 0;
@@ -21,15 +54,10 @@
   import { RoomEnvironment } from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/environments/RoomEnvironment.js';
 
   const controls  = new OrbitControls(camera, renderer.domElement);
-  const imgloader = new THREE.TextureLoader();
+  const imgloader = new THREE.TextureLoader(manager);
   const geometry  = new THREE.BoxGeometry();
   const material  = new THREE.MeshBasicMaterial({map: imgloader.load("img/wall.jpg") });
   const clock     = new THREE.Clock();
-
-  // movement - please calibrate these values
-  var xSpeed = 0.1;
-  var ySpeed = 0.1;
-
   material.flatShading = true;
 
   const linematerial = new THREE.LineBasicMaterial( { color: 0xff0000, linewidth: 2 } );
@@ -41,10 +69,12 @@
     // new THREE.Vector3( -10,  -10,  10 )
   ];
 
-  const linegeo = new THREE.BufferGeometry().setFromPoints( points );
-  const line    = new THREE.Line( linegeo, linematerial );
-  line.frustumCulled = false;
-  scene.add( line );
+  if(false){
+    const linegeo = new THREE.BufferGeometry().setFromPoints( points );
+    const line    = new THREE.Line( linegeo, linematerial );
+    line.frustumCulled = false;
+    scene.add( line );
+  }
 
   camera.up = new THREE.Vector3( 0, 0 , 1 );
   camera.position.z =  demo==true ? 15 : 55;
@@ -52,7 +82,7 @@
 
   const environment    = new RoomEnvironment();
   const pmremGenerator = new THREE.PMREMGenerator( renderer );
-  const loader         = new GLTFLoader();
+  const loader         = new GLTFLoader(manager);
   scene.background     = new THREE.Color( 0xbbbbbb );
   scene.environment    = pmremGenerator.fromScene( environment ).texture;
   const movement       = [0,0,0,0, 0, 0]; //Y pos X pos Animation on/off
@@ -94,18 +124,12 @@ let walking   = null;
 let tankmotor = null
 let kapow     = null
 
-const audioLoader = new THREE.AudioLoader();
+const audioLoader = new THREE.AudioLoader(manager);
 audioLoader.load( "./sound/test.mp3", function( buffer ) {
   console.log("bgm");
   sound.setBuffer( buffer );
   sound.setLoop( true );
   sound.setVolume( 0.05 );
-  if(!audioDebug) sound.play();
-
-  createTurret();
-  createTurret();
-  createTurret();
-
 });
 audioLoader.load( "./sound/tank.mp3", function( buffer ) {
   console.log("tank");
@@ -486,6 +510,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   }; // const createcannon = (mesh) =>
 
   let boomz = [null];
+  let lights = [];
   const createexplosion = (ball) => {
     if(!ball) return;
     let plasmaBall = new THREE.Mesh(
@@ -505,9 +530,19 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     plasmabang.setBuffer(bang);
     plasmabang.setVolume(10);
     if(!audioDebug) plasmabang.play();
-    plasmaBall.add(plasmabang);
 
-    scene.add(plasmaBall);
+    const light = new THREE.PointLight( 0xffffff, 2, 50 );
+    light.position.set(
+      plasmaBall.position.x,
+      plasmaBall.position.y,
+      plasmaBall.position.z,
+    );
+    lights.push(light);
+
+    scene     .add( light );
+    plasmaBall.add(plasmabang);
+    scene     .add(plasmaBall);
+
     let index = boomz.indexOf(null);
     if(index==-1) {
       boomz.push(plasmaBall);
@@ -544,12 +579,12 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       playerMixer.clipAction( playerAnimations.Breathing ).play();
       playerMixer.clipAction( playerAnimations.Shooting ) .stop();
       playerMixer.clipAction( playerAnimations.Running )  .stop();
-      if(!audioDebug) walking.stop();
+      if(!audioDebug && walking.isPlaying) walking.stop();
     } else {
       playerMixer.clipAction( playerAnimations.Running )  .play();
       playerMixer.clipAction( playerAnimations.Shooting ) .stop();
       playerMixer.clipAction( playerAnimations.Breathing ).stop();
-      if(!audioDebug) walking.play();
+      if(!audioDebug && walking!=null) walking.play();
     }
   } // const setAnimation = (isRunning) =>
 
@@ -564,15 +599,12 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     const eneanim  = animations['turret.glb'];
     const enemixer = turretMixer[index];
 
-    // console.log(turret);
-    [    turret,
-      ...turret.children,
-      ...turret.children[0].children
-    ].forEach((item, i) => {
+    const materialupdate = (item) => {
       if(
         item.material &&
-        item.material.emissive &&
-        item.material.emissive.r>=0
+        item.material.name != "outline" &&
+        item.material.emissive
+        // item.material.emissive.r>=0
       ) {
         item.material.emissive.r-=4*delta;//setHex(item.material.emissive.getHex()-1*delta);
         item.material.emissive.g-=4*delta;//setHex(item.material.emissive.getHex()-1*delta);
@@ -583,7 +615,22 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
           item.material.emissive.b=0;
         }
       }
-    });
+    }
+
+    // console.log(turret);
+    materialupdate(turret);
+    var len = turret.children.length;
+    while(len--){
+      materialupdate(turret.children[len]);
+      if(turret.children[len].children.length > 0){
+        var n = turret.children[len].children.length;
+        while(n--) materialupdate(turret.children[len].children[n]);
+      }
+    }
+    // [    turret,
+    //   ...turret.children,
+    //   ...turret.children[0].children
+    // ].forEach((item, i) => );
     // if(t.material && t.material.emissive.getHex() ) t.material.emissive.setHex(t.material.emissive.getHex()/2);
 // t.state="rot";
     // turret.translateY(-10 * delta);
@@ -803,6 +850,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       xvector.z = 0; xvector.y = 0; xvector.x = direction_x; xvector.normalize(); xray.set(xtarget, xvector);
       let xbound = xray.intersectObject(objects["stage.glb"].scene.children[0]);
 
+
       ytarget.copy(cube.position); ytarget.z = 1.5;
       yvector.z = 0; yvector.x = 0; yvector.y = direction_y; yvector.normalize(); yray.set(ytarget, yvector);
       let ybound = yray.intersectObject(objects["stage.glb"].scene.children[0]);
@@ -831,6 +879,9 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       b.scale.y+=15 * delta;
       b.scale.z+=15 * delta;
       if(b.scale.z > 2){
+        scene.remove(lights[i]);
+        lights.splice(i,1);
+
         scene.remove(b);
         boomz.splice(i, 1);//] = null;
       }
@@ -900,12 +951,29 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       let t  = turrets[turretindex]; //ballbound[0].object.parent;
       //this sucks
       // console.log(t.children);
-      [ t,
-        ...t.children,
-        ...t.children[0].children
-      ].forEach((item, i) => {
-        if(item.material && item.material.emissive) item.material.emissive.setHex(0xffffff);
-      });
+      const setdamagedhighlight = (item) => {
+        console.log(item.material?.name)
+        if(
+          item.material &&
+          item.material.name != "outline" &&
+          item.material.emissive
+        ) {
+          item.material.emissive.setHex(0xffffff);
+        }
+      };
+      setdamagedhighlight(t);
+      var len = t.children.length;
+      while(len--){
+        setdamagedhighlight(t.children[len])
+        if(t.children[len].children.length > 0){
+          var n = t.children[len].children.length;
+          while(n--) setdamagedhighlight(t.children[len].children[n]);
+        }
+      }
+      // [ t,
+      //   ...t.children,
+      //   ...t.children[0].children
+      // ].forEach((item, i) => );
 
       ta.health--;
       ta.life.scale.x=ta.health/10;
@@ -976,6 +1044,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     }
   } // const doBallzFrame = (delta) =>
 
+
+
   const animate = function () {
     requestAnimationFrame( animate );
     let delta   = clock.getDelta();
@@ -1005,7 +1075,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       camera.lookAt(turrets[demoindex].position);
     } else {
       camera.position.x = cube.position.x;
-      camera.position.y = cube.position.y-1;
+      camera.position.y = cube.position.y-10;
       camera.lookAt(cube.position);
     }
 
@@ -1014,12 +1084,10 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
                 mixer[name].update( delta );
               });
 
-
-
     composer.render();
   };
 
-  animate();
+
 
   window.addEventListener(
     'resize',
