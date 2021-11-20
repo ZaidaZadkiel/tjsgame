@@ -75,10 +75,12 @@
 			}
 			.hoverable:hover {
 				background-color: #a0a0a0;
+				cursor: pointer;
 			}
 
 			input[type=checkbox]
 			{
+				cursor: pointer;
 			  /* Double-sized Checkboxes */
 			  -ms-transform:     scale(2); /* IE */
 			  -moz-transform:    scale(2); /* FF */
@@ -108,9 +110,31 @@
 
 	//		document.getElementById("info").style.visibility = "hidden";
 		}
+
+		function saveOptions(e){
+			let options = {
+				use_aa  :   document.getElementById("use_aa")    .checked,
+				use_osd :   document.getElementById("use_osd")   .checked,
+				run_demo:   document.getElementById("run_demo")  .checked,
+				play_sound: document.getElementById("play_sound").checked,
+				do_board:   document.getElementById("do_board")  .checked
+			}
+			console.log("saveOptions", options);
+			localStorage.setItem("options", JSON.stringify(options));
+		}
+
+		function loadOptions(e){
+			let options = JSON.parse(localStorage.getItem("options"));
+			console.log("loadOptions", options);
+			document.getElementById("use_aa")    .checked = options.use_aa;
+			document.getElementById("use_osd")   .checked = options.use_osd;
+			document.getElementById("run_demo")  .checked = options.run_demo;
+			document.getElementById("do_board")  .checked = options.do_board;
+			document.getElementById("play_sound").checked = options.play_sound;
+		}
 	// <script type="module" src="game.js">
 	</script>
-	<body>
+	<body onload="loadOptions()">
 
 
 
@@ -122,18 +146,21 @@
 			<div id="progress">LOADING</div>
 			<details class="hoverable" >
 				<summary>options</summary>
-				<table>
+				<table onclick="saveOptions()">
 					<tr>
-						<td><input type="checkbox"></td><td>Use Antialiasing</td>
+						<td><input type="checkbox" id="use_aa"/></td><td><label for="use_aa">Use Antialiasing</label></td>
 					</tr>
 					<tr>
-						<td><input type="checkbox"></td><td>On Screen Controls</td>
+						<td><input type="checkbox" id="play_sound"/></td><td><label for="play_sound">Play sounds & Music</label></td>
 					</tr>
 					<tr>
-						<td><input type="checkbox"></td><td>Run cabinet demo</td>
+						<td><input type="checkbox" id="use_osd"/></td><td><label for="use_osd">On Screen Controls</label></td>
 					</tr>
 					<tr>
-						<td><input type="checkbox"></td><td>Uplol to leaderbored</td>
+						<td><input type="checkbox" id="run_demo"/></td><td><label for="run_demo">Run cabinet demo</label></td>
+					</tr>
+					<tr>
+						<td><input type="checkbox" id="do_board"/></td><td><label for="do_board">Uplol to leaderbored</label></td>
 					</tr>
 				</table>
 			</details>

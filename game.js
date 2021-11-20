@@ -7,6 +7,15 @@
   let loadingscreen = document.getElementById("progress");
   loadingscreen.style.visibility="visible";
 
+  let options = JSON.parse(localStorage.getItem("options"));
+  console.log(options);
+
+  const audioDebug = !options.play_sound
+  console.log("audioDebug", audioDebug);
+  let demo      = options.run_demo;
+  var demotime  = 0;
+  var demoindex = 0;
+
 
   const manager = new THREE.LoadingManager();
   manager.onStart = function ( url, itemsLoaded, itemsTotal ) {
@@ -14,7 +23,7 @@
   };
 
   manager.onLoad = function ( ) {
-  	console.log( 'Loading complete!');
+  	// console.log( 'Loading complete!');
     loadingscreen.style.visibility="hidden";
     document.getElementById("info").style.visibility="hidden";
 
@@ -28,9 +37,9 @@
 
 
   manager.onProgress = function ( url, itemsLoaded, itemsTotal ) {
-  	console.log( 'Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
+  	// console.log( 'Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
     loadingscreen.style.width=`${(100*itemsLoaded)/itemsTotal}%`;
-    console.log(loadingscreen.style.width)
+    // console.log(loadingscreen.style.width)
   };
 
   manager.onError = function ( url ) {
@@ -38,16 +47,12 @@
   };
 
 
-
-  let demo      = false;
-  var demotime  = 0;
-  var demoindex = 0;
-
   const scene    = new THREE.Scene();
   const camera   = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 10, 100 );
   const renderer = new THREE.WebGLRenderer();
   const debug    = document.getElementById("debug");
 
+  renderer.debug.checkShaderErrors = false;
   renderer.setSize( window.innerWidth, window.innerHeight );
   document.body.appendChild( renderer.domElement );
 
@@ -62,16 +67,16 @@
   const clock     = new THREE.Clock();
   material.flatShading = true;
 
-  const linematerial = new THREE.LineBasicMaterial( { color: 0xff0000, linewidth: 2 } );
-  const points = [
-    new THREE.Vector3( -10,  -10,  10 ) ,
-    new THREE.Vector3( -10,   10,  10 ) ,
-    // new THREE.Vector3(  10,   10,  10 ) ,
-    // new THREE.Vector3(  10,  -10,  10 ) ,
-    // new THREE.Vector3( -10,  -10,  10 )
-  ];
 
-  if(false){
+  if(false){ //debug line to show stuff on world space
+    const linematerial = new THREE.LineBasicMaterial( { color: 0xff0000, linewidth: 2 } );
+    const points = [
+      new THREE.Vector3( -10,  -10,  10 ) ,
+      new THREE.Vector3( -10,   10,  10 ) ,
+      // new THREE.Vector3(  10,   10,  10 ) ,
+      // new THREE.Vector3(  10,  -10,  10 ) ,
+      // new THREE.Vector3( -10,  -10,  10 )
+    ];
     const linegeo = new THREE.BufferGeometry().setFromPoints( points );
     const line    = new THREE.Line( linegeo, linematerial );
     line.frustumCulled = false;
@@ -79,7 +84,7 @@
   }
 
   camera.up = new THREE.Vector3( 0, 0 , 1 );
-  camera.position.z =  demo==true ? 15 : 55;
+  camera.position.z = demo==true ? 15 : 55;
   camera.position.y = -30;
 
   const environment    = new RoomEnvironment();
@@ -98,23 +103,25 @@
 
 
   let composer, fxaaPass;
-        fxaaPass   = new ShaderPass( FXAAShader );
   const renderPass = new RenderPass( scene, camera );
-  const pixelRatio = renderer.getPixelRatio();
+  composer = new EffectComposer( renderer );
+  composer.addPass( renderPass );
 
-	fxaaPass.material.uniforms[ 'resolution' ].value.x = 1 / ( window.innerWidth * pixelRatio );
-	fxaaPass.material.uniforms[ 'resolution' ].value.y = 1 / ( window.innerHeight * pixelRatio );
+  if(options.use_aa === true){
+          fxaaPass   = new ShaderPass( FXAAShader );
+    const pixelRatio = renderer.getPixelRatio();
+  	fxaaPass.material.uniforms[ 'resolution' ].value.x = 1 / ( window.innerWidth * pixelRatio );
+  	fxaaPass.material.uniforms[ 'resolution' ].value.y = 1 / ( window.innerHeight * pixelRatio );
+    composer.addPass( fxaaPass );
+  }
 
-	composer = new EffectComposer( renderer );
-	composer.addPass( renderPass );
-	// composer.addPass( fxaaPass );
 
 
 //-----Sound--------------------------
 
 
 const listener = new THREE.AudioListener();
-const audioDebug = false;
+;
 
 
 let sound     = new THREE.Audio(listener);
@@ -127,29 +134,29 @@ let kapow     = null
 
 const audioLoader = new THREE.AudioLoader(manager);
 audioLoader.load( "./sound/test.mp3", function( buffer ) {
-  console.log("bgm");
+  // console.log("bgm");
   sound.setBuffer( buffer );
   sound.setLoop( true );
   sound.setVolume( 0.05 );
 });
 audioLoader.load( "./sound/tank.mp3", function( buffer ) {
-  console.log("tank");
+  // console.log("tank");
   tankmotor = buffer;
 });
 audioLoader.load( "./sound/pew.mp3", function( buffer ) {
-  console.log("pew");
+  // console.log("pew");
   pew  = buffer;
 });
 audioLoader.load( "./sound/bang.mp3", function( buffer ) {
-  console.log("bang");
+  // console.log("bang");
   bang = buffer;
 });
 audioLoader.load( "./sound/kapow.mp3", function( buffer ) {
-  console.log("kapow");
+  // console.log("kapow");
   kapow = buffer;
 });
 audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
-  console.log("taptap");
+  // console.log("taptap");
   taptap = buffer;
   walking = new THREE.Audio(listener);
   walking.setBuffer(taptap);
@@ -175,7 +182,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     }
 
     paths.forEach((path, i) => {
-      console.log("path index", i, `mod/${path}`);
+      // console.log("path index", i, `mod/${path}`);
 
       loader.load(
         `mod/${path}`,
@@ -258,13 +265,14 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   );
 
 
-  const shot = () => {
-    if(movement[mov_SHOT]==1 && shotstart == 0){
-      shotstart = mixer['monitoringo.glb'].time;
-      mixer['monitoringo.glb'].clipAction( animations['monitoringo.glb'].Shooting ).reset();
-      createball();
-    }
-  }
+  // const notshot = () => {
+  //   console.log("weird shot func")
+  //   if(movement[mov_SHOT]==1 && shotstart == 0){
+  //     shotstart = mixer['monitoringo.glb'].time;
+  //     mixer['monitoringo.glb'].clipAction( animations['monitoringo.glb'].Shooting ).reset();
+  //     createball();
+  //   }
+  // }
 
     document.addEventListener(
       "keydown",
@@ -276,7 +284,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
           // if(movement[mov_SHOT]==1) return;
           switch(event.which){
             // case 80: createTurret(); break;
-            case 68: doDamaged(); break;
+            case 68: ballz = []; break;
             case 32:
                     if(movement[mov_SHOT]==0) shotstart = 0;
                     movement[mov_SHOT] = 2;
@@ -351,7 +359,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   ];
 
   const removeturret = (index)=> {
-    console.log("removing", index, turrets[index]);
+    // console.log("removing", index, turrets[index]);
     createexplosion(turrets[index]);
 
     if(!audioDebug) {
@@ -388,7 +396,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     cloneMaterial(turret);
     var i = turret.children.length;
-    console.log(i, turret.children.length)
+    // console.log(i, turret.children.length)
     while(i--){
       cloneMaterial(turret.children[i])
       if(turret.children[i].children.length){
@@ -450,52 +458,90 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
 
 
+  let plasmaBallGeo = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 4, 4),
+    plasmaballmaterial
+  );
+
 
   let ballz = [];
   const createball = () => {
-    let plasmaBall = new THREE.Mesh(
-      new THREE.SphereGeometry(0.5, 4, 4),
-      plasmaballmaterial
-    );
+    console.log("created", ballz.length)
+    let plasmaBall = plasmaBallGeo.clone()
+    let plasmapew  = new THREE.PositionalAudio(listener);
 
-    let theta = -cube.rotation.z ;// * Math.PI/180;
-
-    plasmaBall.position.x = cube.position.x-( 0.8*Math.cos(theta));
-    plasmaBall.position.y = cube.position.y+( 0.8*Math.sin(theta));
-    plasmaBall.position.z = 2.5;
-
-    plasmaBall.quaternion.copy(cube.quaternion); // apply cube's quaternion
-
-    const plasmapew = new THREE.PositionalAudio(listener);
     plasmapew.setBuffer(pew);
     plasmapew.setVolume(10);
     if(!audioDebug) plasmapew.play();
 
     plasmaBall.add(plasmapew);
-    scene.add(plasmaBall);
+    scene     .add(plasmaBall);
 
-    let index = ballz.indexOf(null);
-    if(index==-1) {
-      ballz.push(plasmaBall);
-    } else {
-      ballz[index] = plasmaBall;
-    }
+    let theta = -cube.rotation.z ;// * Math.PI/180;
+    let x     = cube.position.x -( 0.8*Math.cos(theta));
+    let y     = cube.position.y +( 0.8*Math.sin(theta));
+    let z     = 2.5;
+
+    plasmaBall.position.x = x;
+    plasmaBall.position.y = y;
+    plasmaBall.position.z = z;
+    plasmaBall.quaternion.copy(cube.quaternion); // apply cube's quaternion
+    plasmaBall.translateY(-1); // move along the local y-axis
+    plasmaBall.scale.y = 2;
+
+    balltarget.x=x;
+    balltarget.y=y;
+    balltarget.z=z;
+
+    ballvector.x=(plasmaBall.position.x - x);
+    ballvector.y=(plasmaBall.position.y - y);
+    ballvector.z=0;
+
+    ballvector.normalize();
+
+    ballray.set(balltarget, ballvector);
+    let ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
+
+    plasmaBall.target = ballbound[0].point;
+
+    ballz.push(plasmaBall);
   };
 
+  let cannonBallGeo = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 4, 4),
+    cannonballmaterial
+  );
   const cannons = [];
   const createcannon = (mesh) => {
-    let plasmaBall = new THREE.Mesh(
-      new THREE.SphereGeometry(0.5, 4, 4),
-      cannonballmaterial
-    );
-
-    let theta = -mesh.rotation.z ;// * Math.PI/180;
+    let plasmaBall = cannonBallGeo.clone();
+    let theta      = -mesh.rotation.z ;// * Math.PI/180;
 
     plasmaBall.position.x = mesh.position.x;//-( 1*Math.cos(theta));
     plasmaBall.position.y = mesh.position.y;//+( 1*Math.sin(theta));
     plasmaBall.position.z = 3;
-
     plasmaBall.quaternion.copy(mesh.quaternion); // apply mesh's quaternion
+
+    balltarget.x=(plasmaBall.position.x);
+    balltarget.y=(plasmaBall.position.y);
+    balltarget.z=4;//(plasmaBall.position.z);
+
+    plasmaBall.translateY(-1); // move along the local y-axis
+
+    ballvector.x=(plasmaBall.position.x - balltarget.x)*10;
+    ballvector.y=(plasmaBall.position.y - balltarget.y)*10;
+    ballvector.z=0;//(plasmaBall.position.z);
+    ballvector.normalize();
+
+    ballray.set(balltarget, ballvector);
+
+    let ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
+
+    plasmaBall.target = ballbound[0].point;
+
+    // if(ballbound[0] && ballbound[0].distance < 2 && ballbound[0].object.uuid != b.uuid){
+    //   deleteCannon(b, cannonindex);
+    // }
+
 
     const plasmapew = new THREE.PositionalAudio(listener);
     plasmapew.setBuffer(kapow);
@@ -794,8 +840,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     switch(true){
       case (movement[mov_HURT]):         console.log("hurt"); break;
-      case (movement[mov_SHOT]):         console.log("hurt"); break;
-      case (direction_x || direction_y): console.log("hurt"); break;
+      case (movement[mov_SHOT]):         console.log("shot"); break;
+      case (direction_x || direction_y): console.log("move"); break;
     }
 
     if(movement[mov_HURT]){
@@ -893,24 +939,25 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     }
   }
 
+  const deleteCannon = (b, index) => {
+    // console.log("wat");
+    createexplosion(b);
+    b.position.set(0,0,-10);
+    // console.log(cannons.children[1]);
+    scene.remove(b);
+    cannons.splice(index,1);
+  }
   const doCannonsFrame = (delta) => {
-    const deleteCannon = (b, index) => {
-      // console.log("wat");
-      createexplosion(b);
-      b.position.set(0,0,-10);
-      // console.log(cannons.children[1]);
-      scene.remove(b);
-      cannons.splice(index,1);
-    }
-
     var cannonindex = cannons.length;
     while(cannonindex--) {
       var b = cannons[cannonindex];
       if(!b) return;
       // console.log(b.position, cube.position, b.position.distanceTo(cube.position));
 
+      b.translateY(-40 * delta); // move along the local y-axis
+
       if(b.position.distanceTo(cube.position) < 4){
-        console.log("ouch");
+        // console.log("ouch");
         deleteCannon(b, cannonindex);
         health--;
         doDamaged();
@@ -918,90 +965,77 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         // if(health ==0) debug.innerHTML = "GAME OVER MAN, ITS GAME OVER~";
       }
 
-      balltarget.x=(b.position.x);
-      balltarget.y=(b.position.y);
-      balltarget.z=4;//(b.position.z);
-
-      b.translateY(-40 * delta); // move along the local y-axis
-
-      ballvector.x=(b.position.x - balltarget.x)*10;
-      ballvector.y=(b.position.y - balltarget.y)*10;
-      ballvector.z=0;//(b.position.z);
-      ballvector.normalize();
-
-      ballray.set(balltarget, ballvector);
-
-      let ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
-      if(ballbound[0] && ballbound[0].distance < 2 && ballbound[0].object.uuid != b.uuid){
+      // console.log(cannonindex, b.target);
+      if(b.position.distanceTo(b.target) < 1.5){
         deleteCannon(b, cannonindex);
       }
+
     }
   }
 
+  const setdamagedhighlight = (item) => {
+    if(
+      item.material &&
+      item.material.name != "outline" &&
+      item.material.emissive
+    ) {
+      item.material.emissive.setHex(0xffffff);
+    }
+  };
+
+  const removeball = (b, i) => {
+    if(!b) return;
+    // console.log("delet", i, b);
+    createexplosion(b);
+    scene.remove(b);
+    ballz.splice(i, 1); //[i] = null;
+    // b.position.set(cube.position)
+  }
+
+  const turretHit = (turretindex) => {
+    // console.log("turretHit", turretindex);
+    score++;
+    let ta = turretAction[turretindex];
+    let t  = turrets[turretindex]; //ballbound[0].object.parent;
+
+    var len = t.children.length;
+    setdamagedhighlight(t);
+    while(len--){
+      setdamagedhighlight(t.children[len])
+      if(t.children[len].children.length > 0){
+        var n = t.children[len].children.length;
+        while(n--) setdamagedhighlight(t.children[len].children[n]);
+      }
+    }
+
+    ta.health--;
+    ta.life.scale.x=ta.health/10;
+    if(ta.health<0){
+      score+=10;
+      level++;
+      removeturret(turretindex);
+    }
+    // console.log("turretHitEnd", t, ta);
+  }
+
   const doBallzFrame = (delta) => {
-
-    const removeball = (b, i) => {
-      if(!b) return;
-      // console.log("delet", i, b);
-      createexplosion(b);
-      scene.remove(b);
-      ballz.splice(i, 1); //[i] = null;
-      b.position.set(cube.position)
-    }
-
-    const turretHit = (turretindex) => {
-      // console.log("turretHit", turretindex);
-      score++;
-      let ta = turretAction[turretindex];
-      let t  = turrets[turretindex]; //ballbound[0].object.parent;
-      //this sucks
-      // console.log(t.children);
-      const setdamagedhighlight = (item) => {
-        console.log(item.material?.name)
-        if(
-          item.material &&
-          item.material.name != "outline" &&
-          item.material.emissive
-        ) {
-          item.material.emissive.setHex(0xffffff);
-        }
-      };
-      setdamagedhighlight(t);
-      var len = t.children.length;
-      while(len--){
-        setdamagedhighlight(t.children[len])
-        if(t.children[len].children.length > 0){
-          var n = t.children[len].children.length;
-          while(n--) setdamagedhighlight(t.children[len].children[n]);
-        }
-      }
-      // [ t,
-      //   ...t.children,
-      //   ...t.children[0].children
-      // ].forEach((item, i) => );
-
-      ta.health--;
-      ta.life.scale.x=ta.health/10;
-      if(ta.health<0){
-        score+=10;
-        level++;
-        removeturret(turretindex);
-      }
-      // console.log("turretHitEnd", t, ta);
-    }
-
     var i = ballz.length;
-    while (i--) {
+
+    while (i-- ) {
+      if(!ballz[i]){
+        console.log("ball does not exist")
+        continue;
+      }
       let b = ballz[i];
-      if(!b) continue;
 
       if(turrets.length > 0){
-        for (let i = 0; i!=turrets.length; i++) {
-          let turret = turrets[i];
-          if(!turret) continue;
+        var ti = turrets.length;
+        while(ti--){
+          if(!turrets[ti]) continue;
+          let turret = turrets[ti];
           if(b.position.distanceTo(turret.position) < 6){
             // console.log("turretsforeach",i, b.position.distanceTo(turret.position))
-            turretHit(i);
+            turretHit(ti);
             removeball(b, i);
             return; // exit frame
           }
@@ -1009,43 +1043,12 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         } // for (let i = 0; i!=turrets.length; i++)
       } // if(turrets.length > 0)
 
-      balltarget.x=(b.position.x);
-      balltarget.y=(b.position.y);
-      balltarget.z=4;//(b.position.z);
-
-      b.translateY(-40 * delta); // move along the local y-axis
-
-      ballvector.x=(cube.position.x - balltarget.x);
-      ballvector.y=(cube.position.y - balltarget.y);
-      ballvector.z=4;//(b.position.z);
-      ballvector.normalize();
-
-      ballray.set(balltarget, ballvector);
-      let ballbound;
-
-      ballbound = ballray.intersectObject(objects["stage.glb"].scene.children[0]);
-      if(ballbound[0] && ballbound[0].distance < 2){
-
-        // let turretindex = turrets.findIndex((k)=>{
-        //   let target = ballbound[0].object;
-        //   if(k.uuid        == ballbound[0].object.parent.uuid) return true;
-        //   if(k.parent.uuid == ballbound[0].object.parent.uuid) return true;
-        //
-        //   for (var index in k.children) {
-        //     if (k.children[index].uuid == target.uuid) return true;
-        //     if (k.children[index].children[0] && k.children[index].children[0].uuid == target.uuid) return true;
-        //   }
-        //
-        // }); // let turretindex = turrets.findIndex
-        //
-        // if(turretindex!=-1){
-        //   turretHit(turretindex);
-        // }
-
-        updateStats();
+      if(b.position.distanceTo(b.target) < 1){
         removeball(b, i);
-      } // if(ballbound[0] && ballbound[0].distance < 2)
+        return;
+      }
 
+      b.translateY(-50 * delta); // move along the local y-axis
     }
   } // const doBallzFrame = (delta) =>
 
