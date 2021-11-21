@@ -49,18 +49,19 @@
 
   const scene    = new THREE.Scene();
   const camera   = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 10, 100 );
-  const renderer = new THREE.WebGLRenderer();
+  const renderer = new THREE.WebGLRenderer({alpha: true, antialias: (!!options.use_aa)});
   const debug    = document.getElementById("debug");
 
   renderer.debug.checkShaderErrors = false;
+  renderer.autoClear = false;
   renderer.setSize( window.innerWidth, window.innerHeight );
   document.body.appendChild( renderer.domElement );
 
-  import { OrbitControls }   from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/controls/OrbitControls.js';
+  // import { OrbitControls }   from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/controls/OrbitControls.js';
   import { GLTFLoader }      from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/loaders/GLTFLoader.js';
   import { RoomEnvironment } from 'https://cdn.skypack.dev/three@0.134.0/examples/jsm/environments/RoomEnvironment.js';
 
-  const controls  = new OrbitControls(camera, renderer.domElement);
+  // const controls  = new OrbitControls(camera, renderer.domElement);
   const imgloader = new THREE.TextureLoader(manager);
   const geometry  = new THREE.BoxGeometry();
   const material  = new THREE.MeshBasicMaterial({map: imgloader.load("img/wall.jpg") });
@@ -102,18 +103,18 @@
   const mov_HURT = 6;
 
 
-  let composer, fxaaPass;
-  const renderPass = new RenderPass( scene, camera );
-  composer = new EffectComposer( renderer );
-  composer.addPass( renderPass );
+  // let composer, fxaaPass;
+  // const renderPass = new RenderPass( scene, camera );
+  // composer = new EffectComposer( renderer );
+  // composer.addPass( renderPass );
 
-  if(options.use_aa === true){
-          fxaaPass   = new ShaderPass( FXAAShader );
-    const pixelRatio = renderer.getPixelRatio();
-  	fxaaPass.material.uniforms[ 'resolution' ].value.x = 1 / ( window.innerWidth * pixelRatio );
-  	fxaaPass.material.uniforms[ 'resolution' ].value.y = 1 / ( window.innerHeight * pixelRatio );
-    composer.addPass( fxaaPass );
-  }
+  // if(options.use_aa === true){
+  //         fxaaPass   = new ShaderPass( FXAAShader );
+  //   const pixelRatio = renderer.getPixelRatio();
+  // 	fxaaPass.material.uniforms[ 'resolution' ].value.x = 1 / ( window.innerWidth * pixelRatio );
+  // 	fxaaPass.material.uniforms[ 'resolution' ].value.y = 1 / ( window.innerHeight * pixelRatio );
+  //   composer.addPass( fxaaPass );
+  // }
 
 
 
@@ -809,6 +810,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   LEVEL:  ${level>10?Array(Math.floor(level/10)).fill('🐲').join(''):''}${Array(level%11).fill('🪖').join('')}
   NEXT:   ${((20-level)-lastspawn).toFixed(2)}
   </pre>`;
+  // MOVS:   ${osdTime}
   updateStats();
 
 
@@ -961,7 +963,6 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         deleteCannon(b, cannonindex);
         health--;
         doDamaged();
-        if(health>0) updateStats();
         // if(health ==0) debug.innerHTML = "GAME OVER MAN, ITS GAME OVER~";
       }
 
@@ -1053,6 +1054,163 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   } // const doBallzFrame = (delta) =>
 
 
+  var cameraOrtho;
+  var sceneOrtho;
+  var padMat;
+  var cursorMat;
+  var buttonMat;
+  var padGeo;
+  var cursorGeo;
+  var buttonGeo;
+  var padMesh;
+  var cursorMesh;
+  var buttonMesh;
+  var osdTime = 0;
+
+  const padUpdate = () => {
+    let x = cursorMesh.position.x - padMesh.position.x;
+    let y = cursorMesh.position.y - padMesh.position.y;
+
+    let slope = y / x;
+    if(Math.abs(slope) < 1){
+      if(Math.sign(x) > 0) { movement[mov_R]=1; movement[mov_L]=0; }
+      if(Math.sign(x) < 0) { movement[mov_L]=1; movement[mov_R]=0; }
+    } else {
+    // if(Math.abs(slope) > 1){
+      if(Math.sign(y) > 0) { movement[mov_U]=1; movement[mov_D]=0; }
+      if(Math.sign(y) < 0) { movement[mov_D]=1; movement[mov_U]=0; }
+    }
+    // movement[6] = Math.abs(x).toFixed(3);
+    // movement[7] = Math.abs(y).toFixed(3);
+    if(Math.abs(x)<15) { movement[mov_R]=0; movement[mov_L]=0; }
+    if(Math.abs(y)<15) { movement[mov_U]=0; movement[mov_D]=0; }
+  }
+
+  if(options.use_osd){
+
+    cameraOrtho       = new THREE.OrthographicCamera(
+       - window.innerWidth  / 2,
+         window.innerWidth  / 2,
+         window.innerHeight / 2,
+       - window.innerHeight / 2,
+       1,
+       20 );
+    sceneOrtho        = new THREE.Scene();
+    padMat            = new THREE.MeshBasicMaterial( { color: 0xffffff, opacity: 0.25, blending: THREE.CustomBlending, blendSrc: THREE.SrcAlphaFactor } );
+    cursorMat         = padMat.clone();
+    cursorMat.color   = new THREE.Color(0xffc0c0);
+    cursorMat.opacity = 1;//new THREE.Color(0xffc0c0);
+    buttonMat         = padMat.clone();
+    buttonMat.color   = new THREE.Color(0xffffff);
+    padGeo            = new THREE.CircleGeometry( 80, 8 );
+    cursorGeo         = new THREE.CircleGeometry( 10, 4 );
+    buttonGeo         = new THREE.CircleGeometry( 20, 10 );
+    padMesh           = new THREE.Mesh( padGeo,    padMat );
+    cursorMesh        = new THREE.Mesh( cursorGeo, cursorMat );
+    buttonMesh        = new THREE.Mesh( buttonGeo, buttonMat );
+
+    cameraOrtho.position.z = 10;
+    cameraOrtho.position.x = window.innerWidth/2;
+    cameraOrtho.position.y = window.innerHeight/2;
+
+    padMesh   .position.set(window.innerWidth/4,window.innerHeight/4,0);
+    console.log(padMesh   .position)
+    cursorMesh.position.set(0,0,-1);
+    buttonMesh.position.set(-1000,0,0);
+
+    sceneOrtho.add(padMesh);
+    sceneOrtho.add(cursorMesh);
+    sceneOrtho.add(buttonMesh);
+
+    var cursorId;
+    var buttonId;
+
+    window.addEventListener("touchmove", (e)=>{
+      var tl = e.changedTouches.length;
+      while(tl--){
+        var touch = e.changedTouches[tl];
+        if(touch.clientX < window.innerWidth/2){
+          cursorMesh.position.set(
+            touch.clientX,
+            window.innerHeight-touch.clientY,
+            0
+          );
+          padUpdate();
+        } else {
+          buttonMesh.position.set(
+            touch.clientX,
+            window.innerHeight-touch.clientY,
+            0
+          );
+        }
+      }
+    });
+
+    window.addEventListener("touchend", (e)=>{
+
+      let x = padMesh.position.x - cursorMesh.position.x;
+      let y = padMesh.position.y - cursorMesh.position.y;
+      movement[mov_L]    = 0;
+      movement[mov_R]    = 0;
+      movement[mov_U]    = 0;
+      movement[mov_D]    = 0;
+      //idunno
+      var len = e.changedTouches.length;
+
+      while(len--){
+        if(e.changedTouches[len].clientX > (window.innerWidth/2)){
+          movement[mov_SHOT]--;// = 0;
+        } else {
+          cursorMesh.position.set(
+            padMesh.position.x,
+            padMesh.position.y,
+            1
+          );
+        }
+      }
+
+      // if(x<0) movement[mov_L] = 0;
+      // if(x>0) movement[mov_R] = 0;
+      // if(y<0) movement[mov_U] = 0;
+      // if(y>0) movement[mov_D] = 0;
+    });
+
+
+    window.addEventListener("touchstart", (e)=>{
+      var len = e.changedTouches.length;
+      while(len--){
+        if(e.changedTouches[len].clientX < window.innerWidth/2){
+          //cursor
+          console.log("cursor move")
+          cursorId = e.changedTouches[len].identifier;
+
+          // if(osdTime > 5){
+          //   osdTime = 0;
+          //   padMesh.position.set(
+          //     e.changedTouches[len].clientX,
+          //     window.innerHeight-e.changedTouches[len].clientY,
+          //     0);
+          // }
+
+          cursorMesh.position.set(
+            e.changedTouches[len].clientX,
+            window.innerHeight-e.changedTouches[len].clientY,
+            0);
+          padUpdate();
+
+        } else {
+          //button
+          movement[mov_SHOT] = 2;
+          console.log("button move")
+          buttonId = e.changedTouches[len].identifier;
+          buttonMesh.position.set(
+            e.changedTouches[len].clientX,
+            window.innerHeight-e.changedTouches[len].clientY,
+            0);
+        }
+      }
+    });
+  }
 
   const animate = function () {
     requestAnimationFrame( animate );
@@ -1092,7 +1250,12 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
                 mixer[name].update( delta );
               });
 
-    composer.render();
+    renderer.render(scene, camera);
+    if(options.use_osd){
+      osdTime += delta;
+      renderer.clearDepth();
+      renderer.render(sceneOrtho, cameraOrtho);
+    }
   };
 
 
@@ -1101,7 +1264,21 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     'resize',
     ()=>{
     	camera.aspect = window.innerWidth / window.innerHeight;
-    	camera.updateProjectionMatrix();
+      camera.updateProjectionMatrix();
+
+    	const aspect = window.innerWidth / window.innerHeight;
+
+      cameraOrtho.left   = - window.innerWidth  / 2;
+			cameraOrtho.right  =   window.innerWidth  / 2;
+			cameraOrtho.top    =   window.innerHeight / 2;
+			cameraOrtho.bottom = - window.innerHeight / 2;
+      cameraOrtho.position.x = window.innerWidth/2;
+      cameraOrtho.position.y = window.innerHeight/2;
+      padMesh   .position.set(window.innerWidth/4,window.innerHeight/4,0);
+    	cameraOrtho.updateProjectionMatrix();
+
+      // cameraOrtho       = new THREE.OrthographicCamera( - window.innerWidth / 2, window.innerWidth / 2, window.innerHeight / 2, - window.innerHeight / 2, 1, 20 );
+
     	renderer.setSize( window.innerWidth, window.innerHeight );
       fxaaPass.material.uniforms[ 'resolution' ].value.x = 1 / ( window.innerWidth  * renderer.getPixelRatio() );
       fxaaPass.material.uniforms[ 'resolution' ].value.y = 1 / ( window.innerHeight * renderer.getPixelRatio() );

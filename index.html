@@ -15,6 +15,12 @@
 		<meta property="og:image:height" content="627" />
 		<meta property="og:image:alt" content="Bambaman vs them Tonkers" />
 		<meta property="article:author" content="ZaidaZadkiel">
+
+		<meta
+		  name='viewport'
+		  content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0'
+		/>
+
 		<style>
 			body {
 				background-color: linen;
@@ -41,7 +47,7 @@
 				margin-left: 0;
 				margin-top:  0;
 				font-family: monospace;;
-				font-size:   2em;
+				/* font-size:   2em; */
 			}
 			#valign {
 			  margin:        0;
@@ -50,6 +56,8 @@
 			  left:          50%;
 			  -ms-transform: translate(-50%, -50%);
 			  transform:     translate(-50%, -50%);
+				font-size: 1.5em;
+
 			}
 
 			#debug {
@@ -92,6 +100,12 @@
 			td {
 				text-align: left;
 				padding-left:0.5em;
+				padding-right:0.5em;
+			}
+
+			button {
+				width: 100%;
+				font-size: 1em;
 			}
 
 		</style>
@@ -123,15 +137,52 @@
 			localStorage.setItem("options", JSON.stringify(options));
 		}
 
+		function toggleFullscreen() {
+		  let elem = document.body;//.querySelector("video");
+
+		  if (!document.fullscreenElement) {
+		    elem.requestFullscreen()
+				.then(()=>{
+					screen.orientation.lock('landscape').then(null, function(error) {
+						document.getElementById("req_fs").innerHTML=JSON.stringify(error)
+						//document.exitFullscreen()
+					})
+				})
+				.catch(err => {
+		      alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+		    });
+		  } else {
+		    document.exitFullscreen();
+		  }
+		}
+
 		function loadOptions(e){
 			let options = JSON.parse(localStorage.getItem("options"));
+			if(!options){
+				options = {
+	 				use_aa  :   false,
+	 				use_osd :   false,
+	 				run_demo:   false,
+	 				play_sound: true,
+	 				do_board:   false
+	 			}
+			}
 			console.log("loadOptions", options);
 			document.getElementById("use_aa")    .checked = options.use_aa;
 			document.getElementById("use_osd")   .checked = options.use_osd;
 			document.getElementById("run_demo")  .checked = options.run_demo;
 			document.getElementById("do_board")  .checked = options.do_board;
 			document.getElementById("play_sound").checked = options.play_sound;
+
+			// if(!screen){
+			// 	document.getElementById("req_fs").innerHTML=JSON.stringify("no screen")
+			// } else {
+			// 	console.log(screen.orientation);
+			// 	document.getElementById("req_fs").innerHTML=JSON.stringify(screen.orientation.type)
+			// }
 		}
+
+
 	// <script type="module" src="game.js">
 	</script>
 	<body onload="loadOptions()">
@@ -147,6 +198,9 @@
 			<details class="hoverable" >
 				<summary>options</summary>
 				<table onclick="saveOptions()">
+					<tr>
+						<td colspan="2"><button id="req_fs" onclick="toggleFullscreen()"><label for="req_fs">Try go fullscreen</label></button></td>
+					</tr>
 					<tr>
 						<td><input type="checkbox" id="use_aa"/></td><td><label for="use_aa">Use Antialiasing</label></td>
 					</tr>
