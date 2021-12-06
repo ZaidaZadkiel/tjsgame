@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>My first three.js app</title>
+		<meta property="og:type" content="product">
+		<meta property="og:title" content="Bambaman vs Them Tonkers - Made with ThreeJS">
+		<meta property="og:description" content="Made originally for a 3-days jam but didnt deliver, so i polished it a bunch">
+		<meta property="og:site_name" content="ZaidaZadkiel website">
+		<meta property="og:url" content="https://www.zaidazadkiel.com/3jsgame/">
+		<meta property="og:image" content="https://www.zaidazadkiel.com/3jsgame/img/cover.jpg">
+		<meta property="og:image:type" content="image/jpg" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="627" />
+		<meta property="og:image:alt" content="Bambaman vs them Tonkers" />
+		<meta property="article:author" content="ZaidaZadkiel">
+
+		<meta
+		  name='viewport'
+		  content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0'
+		/>
+
+		<style>
+
+			.body,
+			.wrapper {
+				text-align:       center;
+				color:            white;
+			  /* Break the flow */
+			  position: absolute;
+			  top: 0px;
+
+			  /* Give them all the available space */
+			  width: 100%;
+			  height: 100%;
+
+			  /* Remove the margins if any */
+			  margin: 0;
+
+			  /* Allow them to scroll down the document */
+			  overflow-y: hidden;
+			}
+
+			.body {
+			  /* Sending body at the bottom of the stack */
+			  z-index: 1;
+			}
+
+			.wrapper {
+			  /* Making the wrapper stack above the body */
+			  z-index: 2;
+			}
+
+			h1 {
+				color:       maroon;
+				margin-left: 40px;
+			}
+			#info {
+				background-color: black;
+				background-image: url("./img/cover.jpg");
+				background-repeat: no-repeat;
+				background-size:  contain;
+				background-position: center;
+				position:    absolute;
+				text-align:  center;
+				width:       100%;
+				height:      100%;
+				top:         0px;
+				left:        0px;
+				margin-left: 0;
+				margin-top:  0;
+				font-family: monospace;;
+				/* font-size:   2em; */
+			}
+			#valign {
+			  margin:        0;
+			  position:      absolute;
+			  top:           50%;
+			  left:          50%;
+			  -ms-transform: translate(-50%, -50%);
+			  transform:     translate(-50%, -50%);
+				font-size: 1.5em;
+
+			}
+
+			#debug {
+				background-color: #00000080;
+				text-align:   left;
+				margin-left:  1em;
+				margin-top:   1em;
+				color:        white;
+				font-family:  monospace;
+				font-size:    1.5em;
+				position:     absolute;
+				padding:      0.1em;
+			}
+			pre {
+				margin-top:0.25em;
+				margin-bottom: 0px;
+			}
+			#progress {
+		    border-color:     white;
+		    width:            0%;
+		    background-color: white;
+		    visibility:       hidden;
+			}
+			.hoverable:hover {
+				background-color: #a0a0a0;
+				cursor: pointer;
+			}
+
+			input[type=checkbox]
+			{
+				cursor: pointer;
+			  /* Double-sized Checkboxes */
+			  -ms-transform:     scale(2); /* IE */
+			  -moz-transform:    scale(2); /* FF */
+			  -webkit-transform: scale(2); /* Safari and Chrome */
+			  -o-transform:      scale(2); /* Opera */
+			  transform:         scale(2);
+			  padding:           10px;
+			}
+			td {
+				text-align: left;
+				padding-left:0.5em;
+				padding-right:0.5em;
+			}
+
+			button {
+				width: 100%;
+				font-size: 1em;
+			}
+
+		</style>
+	</head>
+	<script type="text/javascript">
+		function lolgame(){
+			console.log("lolin");
+			var script = document.createElement('script');
+			script.src = "bundle.game.js";
+			script.type = "module";
+			document.head.appendChild(script);
+			// import(/* webpackChunkName: "lazyLoaded" */ "game.js");
+
+			var status = document.createElement('div');
+			status.innerHTML = '<div id="debug"><pre>hello</pre></div>';
+			document.body.appendChild(status);
+
+	//		document.getElementById("info").style.visibility = "hidden";
+		}
+
+		function saveOptions(e){
+			let options = {
+				use_aa  :   document.getElementById("use_aa")    .checked,
+				use_osd :   document.getElementById("use_osd")   .checked,
+				run_demo:   document.getElementById("run_demo")  .checked,
+				play_sound: document.getElementById("play_sound").checked,
+				do_board:   document.getElementById("do_board")  .checked
+			}
+			console.log("saveOptions", options);
+			localStorage.setItem("options", JSON.stringify(options));
+		}
+
+		function toggleFullscreen() {
+		  let elem = document.body;//.querySelector("video");
+
+		  if (!document.fullscreenElement) {
+		    elem.requestFullscreen()
+				.then(()=>{
+					screen.orientation.lock('landscape').then(null, function(error) {
+						document.getElementById("req_fs").innerHTML=JSON.stringify(error)
+						//document.exitFullscreen()
+					})
+				})
+				.catch(err => {
+		      alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+		    });
+		  } else {
+		    document.exitFullscreen();
+		  }
+		}
+
+		function loadOptions(e){
+			let options = JSON.parse(localStorage.getItem("options"));
+			if(!options){
+				options = {
+	 				use_aa  :   false,
+	 				use_osd :   false,
+	 				run_demo:   false,
+	 				play_sound: true,
+	 				do_board:   false
+	 			}
+			}
+			console.log("loadOptions", options);
+			document.getElementById("use_aa")    .checked = options.use_aa;
+			document.getElementById("use_osd")   .checked = options.use_osd;
+			document.getElementById("run_demo")  .checked = options.run_demo;
+			document.getElementById("do_board")  .checked = options.do_board;
+			document.getElementById("play_sound").checked = options.play_sound;
+
+			// if(!screen){
+			// 	document.getElementById("req_fs").innerHTML=JSON.stringify("no screen")
+			// } else {
+			// 	console.log(screen.orientation);
+			// 	document.getElementById("req_fs").innerHTML=JSON.stringify(screen.orientation.type)
+			// }
+		}
+
+
+	// <script type="module" src="game.js">
+	</script>
+	<body class="body"  onload="loadOptions()">
+		<div id="wrapper" style="visibility: hidden"></div>
+		<div id="info">
+			<div id="valign">
+				<p>Keyboard arrows to move<br/>
+				Space to shoot!</p>
+				<div class="hoverable"  onclick="lolgame()">Click to PLAY</div>
+				<div id="progress">LOADING</div>
+				<details class="hoverable" >
+					<summary>options</summary>
+					<table onclick="saveOptions()">
+						<tr>
+							<td colspan="2"><button id="req_fs" onclick="toggleFullscreen()"><label for="req_fs">Try go fullscreen</label></button></td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" id="use_aa"/></td><td><label for="use_aa">Use Antialiasing</label></td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" id="play_sound"/></td><td><label for="play_sound">Play sounds & Music</label></td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" id="use_osd"/></td><td><label for="use_osd">On Screen Controls</label></td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" id="run_demo"/></td><td><label for="run_demo">Run cabinet demo</label></td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" id="do_board"/></td><td><label for="do_board">Uplol to leaderbored</label></td>
+						</tr>
+					</table>
+				</details>
+
+			</div>
+		</div>
+	</body>
+</html>
