@@ -100,7 +100,7 @@
   var points;
   var linegeo;
   var line;
-  if(true){ //debug line to show stuff on world space
+  if(false){ //debug line to show stuff on world space
     linematerial = new THREE.LineBasicMaterial( { color: 0xff0000, linewidth: 2 } );
     points = [
       new THREE.Vector3( -10,  -10,  10 ) ,
@@ -263,16 +263,19 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
           }
 
           if(path=="stage.glb"){
-            console.log( gltf.scene );
+            // console.log( gltf.scene );
             // scene.add( Object.values(gltf.scene.children).find(k=>k.name=="levelMesh") );
             scene.add( gltf.scene );
             // Object.values(gltf.scene.children).map(k=>k.visible = false );
             walls = Object.values(gltf.scene.children).find(k=>k.name=="walls" );
             floor = Object.values(gltf.scene.children).find(k=>k.name=="floor" );
-            walls.visible=false;
+            // walls.material.side = THREE.FrontSide;
+
+            // walls.visible=false;
+
             // floor.visible=false;
             // scene.add( walls );
-            console.log(walls);
+            // console.log(walls);
             // objects[path].scene.position.z=-100;
           }
 
@@ -883,6 +886,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   let level     = 0;
   let lastspawn = 0;
 
+  let dot = 1;
+
   const updateStats = () => debug.innerHTML=`<pre>
   HEALTH: ${health < 0 ? "💀💀💀" : Array(health).fill('💟').join('')}
   SCORE:  ${score} (${turrets.length})
@@ -918,13 +923,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
        direction_x,
       -direction_y
     ); // witchcraft from stockoverflaw
-    if(direction_x || direction_y) cube.rotation.z = rotz;
 
-    switch(true){
-      case (movement[mov_HURT]):         console.log("hurt"); break;
-      case (movement[mov_SHOT]):         console.log("shot"); break;
-      case (direction_x || direction_y): console.log("move"); break;
-    }
+    if(direction_x || direction_y) cube.rotation.z = rotz;
 
     if(movement[mov_HURT]){
       damageTime += delta;
@@ -991,35 +991,74 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       let xbound = xray.intersectObjects(floor.children);
       // console.log(floor);
 
-      ytarget.set(
-        cube.position.x,
-        cube.position.y,
-        cube.position.z + 3
-      );
-      yvector.z = 0;
-      yvector.y = direction_y;
-      yvector.x = direction_x;
-      yvector.normalize(); yray.set(ytarget, yvector);
-      yray.far = 10;
-      let ybound = (
-        walls.type==="Group"
-          ? yray.intersectObjects(walls.children)
-          : yray.intersectObject (walls)
-      );
-      // console.log(ybound, walls);
+      if(!xbound[0]){
+      // if(true){
+        ytarget.set(
+          cube.position.x,
+          cube.position.y,
+          cube.position.z + 3
+        );
+        yvector.z = 0;
+        yvector.y = direction_y;
+        yvector.x = direction_x;
+        yvector.normalize(); yray.set(ytarget, yvector);
+        yray.far = 10;
+        let ybound = (
+          walls.type==="Group"
+            ? yray.intersectObjects(walls.children)
+            : yray.intersectObject (walls)
+        );
+
+        if(ybound[0] && ybound[0].distance < 3){
+          yvector.set(
+            direction_x,//*(-30  * delta),
+            direction_y,//*(-30 * delta),
+            5
+          );//.normalize();
+
+          ytarget.copy(ybound[0].face.normal);
+          ytarget.transformDirection(ybound[0].object.matrixWorld)
+          ytarget.normalize();
+          // ytarget.negate();
+
+          // yvector.multiply(ytarget);
+          // ytarget.projectOnPlane(yvector);
+          // yvector.normalize();
+          // ytarget.multiplyScalar(ytarget.dot(yvector));//.dot(ybound[0].face.normal);
+          // ytarget.sub(ytarget);
+
+          let v = ytarget;//.normalize();
+          direction_x = v.x;
+          direction_y = v.y;
+          dot = direction_x + ", "+ direction_x;
+
+          cube.position.x += direction_x*(delta*30);
+          cube.position.y += direction_y*(delta*30);
+
+          // Vector undesiredMotion = normal * (dotProduct(input, normal));
+          // Vector desiredMotion = input - undesiredMotion
+          // yvector.sub(ytarget);
+          // ytarget.copy(cube.position);
+          // ytarget.z = cube.position.z + 3;
 
 
-      points[0] = ytarget;
-      points[1] = ybound[0]
-                  ? ybound[0].point
-                  : {
-                      x: (yvector.x*10) + cube.position.x,
-                      y: (yvector.y*10) + cube.position.y,
-                      z: 4
-                    };
-      linegeo.setFromPoints(points);
+          // points[0] = ytarget.add(ybound[0].point);
+          // points[1] = ybound[0].point;
+          // points[2] = yvector.add(ybound[0].point); // ytarget.add(ybound[0].point);
+          // linegeo.setFromPoints(points);
 
-      if(xbound[0]){
+          // yvector.multiplyScalar(yvector.dot(yvector));
+
+
+          // // ytarget.multiplyScalar(30*delta)
+          // ybound[0].point.sub(cube.position);
+          // ybound[0].point.normalize();
+          // // console.log(ybound[0]);
+          // cube.position.x += (ybound[0].point.x*direction_x)*(delta*30);//*(delta*30);
+          // cube.position.y += (ybound[0].point.y*direction_y)*(delta*30);//*(delta*30);
+          return;
+        }
+      } else {
         cube.position.x += direction_x*(delta*30);
         cube.position.y += direction_y*(delta*30);
         cube.position.z = xbound[0].point.z+0.5;
@@ -1452,13 +1491,13 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       createTurret();
     };
 
-    // updateStats();
     doBallzFrame(delta);
     doTurretFrame(delta);
     doBoomzFrame(delta);
     doCannonsFrame(delta);
 
     doCharacterMovement(delta);
+    updateStats();
 
     if(demo && turrets[demoindex]){
       demotime += delta;
