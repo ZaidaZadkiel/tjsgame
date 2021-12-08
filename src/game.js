@@ -1,3 +1,5 @@
+  'use strict';
+
   import * as THREE         from 'three';
   import { FXAAShader }     from 'three/examples/jsm/shaders/FXAAShader.js';
   import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -39,10 +41,10 @@
 
     if(!audioDebug) sound.play();
     createTurret();
-    createTurret();
-    createTurret();
+    // createTurret();
+    // createTurret();
 
-    lights.map(l=>scene.add(l));
+    lights.forEach(l=>scene.add(l));
 
     animate();
 
@@ -70,6 +72,10 @@
   const camera   = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 10, 300 );
   const renderer = new THREE.WebGLRenderer({alpha: true, antialias: (!!options.use_aa)});
   const debug    = document.getElementById("debug");
+
+  let delta = 0;
+
+  debug.innerHTML="WHAT";
 
   // scene.fog = new THREE.Fog(new THREE.Color(0xc0c0c0), 100, 150);
   renderer.debug.checkShaderErrors = false;
@@ -240,6 +246,9 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
           if(path == 'monitoringo.glb'){
             cube = gltf.scene;
+            // let light = new THREE.PointLight(0xffffff, 8, 20);
+            // light.position.y=-10;
+            // cube.add(light);
             scene.add(cube);
             cube.add( listener );
             cube.position.z =1
@@ -256,8 +265,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
           if(path == 'taquerocat.glb'){
             console.log("loled");
-            gltf.scene.position.y = 13;
-            gltf.scene.position.x = -10;
+            gltf.scene.position.y = 35;
+            gltf.scene.position.x = -12;
             scene.add( gltf.scene );
 
           }
@@ -271,7 +280,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
             floor = Object.values(gltf.scene.children).find(k=>k.name=="floor" );
             // walls.material.side = THREE.FrontSide;
 
-            // walls.visible=false;
+            walls.visible=false;
 
             // floor.visible=false;
             // scene.add( walls );
@@ -303,18 +312,6 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     ]
   );
 
-
-  const debugcam = () => {
-    var nice = [];
-    // nice[0] = "cube:" + Object.keys(mixer[0].clipAction(objects[0].animations[0])) ;
-    nice[1] = "y:" + camera.rotation.y.toFixed(6).padStart(10, '0');
-    nice[2] = "z:" + camera.rotation.z.toFixed(6).padStart(10, '0');
-    nice[3] = "posx:" + (movement[mov_R] - movement[mov_L]); //cube.position.x.toFixed(6).padStart(10, '0');
-    nice[4] = "posy:" + (movement[mov_U] - movement[mov_D]); //cube.position.y.toFixed(6).padStart(10, '0');
-    nice[5] = "rotz:" + cube.rotation.z.toFixed(6).padStart(10, '0');
-    nice[6] = "mov:" + movement;
-    document.getElementById("info").innerHTML=nice.join('<br/>');
-  }
 
   document.addEventListener(
     "keydown",
@@ -422,7 +419,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
   var turrcount = 0;
   const createTurret = () => {
-    // turrcount++;
+    turrcount++;
     // if(turrcount>1)
     return;
 
@@ -441,8 +438,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     let lifemeter = life.clone();
     turret.add(lifemeter);
 
-    // turret.position.set(1,1,0);
-    turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
+    turret.position.set(1,1,0);
+    // turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
 
     cloneMaterial(turret);
     var i = turret.children.length;
@@ -455,9 +452,6 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       }
 
     }
-    //turret.children[0].children
-
-
 
 
     const t_mixer = new THREE.AnimationMixer(turret);
@@ -487,22 +481,22 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     }
   };
 
-  var plasmaballmaterial = new THREE.MeshLambertMaterial({
-                             color:             "aqua",
-                             emissive:          "aqua",
-                             emissiveIntensity: 2
-                           });
+  var plasmaballmaterial  = new THREE.MeshLambertMaterial({
+                                color:             "aqua",
+                                emissive:          "aqua",
+                                emissiveIntensity: 2
+                              });
    var cannonballmaterial = new THREE.MeshBasicMaterial({
-                              color: "yellow"
-                            });
+                                color: "yellow"
+                              });
 
-  var explosionmaterial  = new THREE.MeshBasicMaterial({
-                             color: "yellow",
-                             map  : imgloader.load("img/Lava_Texture_preview.jpg")
-                           });
+  var explosionmaterial   = new THREE.MeshBasicMaterial({
+                                color: "yellow",
+                                map  : imgloader.load("img/Lava_Texture_preview.jpg")
+                              });
 
-  const planelife  = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} );
-  const life  = new THREE.Mesh( new THREE.PlaneGeometry( 4, 0.3 ), planelife );
+  const planelife = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} );
+  const life      = new THREE.Mesh( new THREE.PlaneGeometry( 4, 0.3 ), planelife );
   life.position.x = 0;
   life.position.y = 0;
   life.position.z = 7;
@@ -599,8 +593,18 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     ballray.set(balltarget, ballvector);
 
     let ballbound = ballray.intersectObject(walls);
+    if(ballbound[0]) {
+      plasmaBall.target = ballbound[0].point;
+    } else {
+      plasmaBall.target = new THREE.Vector3();
+      plasmaBall.target.x=(plasmaBall.position.x - mesh.position.x);
+      plasmaBall.target.y=(plasmaBall.position.y - mesh.position.y);
+      plasmaBall.target.z=0;
+      plasmaBall.target.multiplyScalar(10);
+      plasmaBall.target.z=3;
 
-    plasmaBall.target = ballbound[0].point;
+      plasmaBall.target.add(plasmaBall.position);
+    }
 
     // if(ballbound[0] && ballbound[0].distance < 2 && ballbound[0].object.uuid != b.uuid){
     //   deleteCannon(b, cannonindex);
@@ -626,9 +630,9 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
   let boomz = [null];
   let lights = [
-    new THREE.PointLight( 0xffffff, 0, 50 ),
-    new THREE.PointLight( 0xffffff, 0, 50 ),
-    new THREE.PointLight( 0xffffff, 0, 50 )
+    new THREE.PointLight( 0xff8000, 0, 50 ),
+    new THREE.PointLight( 0xff8000, 0, 50 ),
+    new THREE.PointLight( 0xff8000, 0, 50 )
   ];
   let lightindex = [99,99,99]; // ugly hack to avoid stutters
 
@@ -725,13 +729,14 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   const tankStates = [
     "rot", "mov", "shot"
   ];
-  const doTurretAction = (index, delta) => {
-    let t      = turretAction[index];
-    let turret = turrets[index];
+  const doTurretAction = (turret, t, enemixer) => {
+    // let t      = turretAction[index];
+    // let turret = turrets[index];
     if(!t) return;
 
     const eneanim  = animations['turret.glb'];
-    const enemixer = turretMixer[index];
+    enemixer.update(delta);
+    // const enemixer = turretMixer[index];
 
     const materialupdate = (item) => {
       if(
@@ -761,13 +766,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         while(n--) materialupdate(turret.children[len].children[n]);
       }
     }
-    // [    turret,
-    //   ...turret.children,
-    //   ...turret.children[0].children
-    // ].forEach((item, i) => );
-    // if(t.material && t.material.emissive.getHex() ) t.material.emissive.setHex(t.material.emissive.getHex()/2);
-// t.state="rot";
-    // turret.translateY(-10 * delta);
+
     switch(t.state){
       case "rot":
         if(!t.moving){
@@ -836,10 +835,6 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
         ray();
 
-        // debug.innerHTML=`<pre>
-        //   ${turret.position.distanceTo(cube.position)}
-        // </pre>`
-
         if(t.timeDelta > t.timeMove || turret.position.distanceTo(cube.position) < 15){
           t.state = "shot";
           t.moving = false;
@@ -873,29 +868,80 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     // debug.innerHTML=`<pre>${JSON.stringify(t, null, 2)}</pre>`;
   }
 
-  const doTurretFrame = (delta) => {
-    turrets.forEach((turret, i) => {
+  const doTurretFrame = () => {
+    let index = turrets.length;
+    let turret;
+    // turrets.forEach((turret, i) => {
+    while(index--){
+      turret = turrets[index]
       if(turret == null) return;
-      doTurretAction(i, delta);
-      if(turretMixer[i])  turretMixer[i].update( delta );
-    });
+      doTurretAction(turrets[index], turretAction[index], turretMixer[index]);
+      // if()  turretMixer[index].update( delta );
+    }
   }
 
-  let health    = 4;
-  let score     = 0;
-  let level     = 0;
-  let lastspawn = 0;
+  let health     = 4;
+  let score      = 0;
+  let level      = 0;
+  let lastspawn  = 0;
 
-  let dot = 1;
+  let oldHealth  = null;
+  let strHealth  = "";
+  let oldScore   = null;
+  let strScore   = "";
+  let oldLevel   = null;
+  let strLevel   = "x";
 
-  const updateStats = () => debug.innerHTML=`<pre>
-  HEALTH: ${health < 0 ? "💀💀💀" : Array(health).fill('💟').join('')}
-  SCORE:  ${score} (${turrets.length})
-  LEVEL:  ${level>10?Array(Math.floor(level/10)).fill('🐲').join(''):''}${Array(level%11).fill('🪖').join('')}
-  NEXT:   ${((20-level)-lastspawn).toFixed(2)}
-  </pre>`;
+  const healthText = () => strHealth = (
+    health==oldHealth
+      ? strHealth
+      : (health > 0
+          ? Array(health).fill('💟').join('')
+          : "💀💀💀")
+  );
+  const scoreText   = () => (
+    strScore = score==oldScore
+      ? strHealth
+      : score+" "+turrets.length
+  );
+
+  let levelText     = () => (
+    strLevel = level == oldLevel
+      ? strLevel
+      : (level  > 10
+          ? Array(Math.floor(level/10)).fill('🐲').join('')
+          : '') +
+        Array(level%11).fill('🪖').join('')
+  );
+
+  let statsLast = 1;
+  const updateStats = () => {
+    statsLast += delta;
+    if(
+      false &&
+      statsLast  <  1
+      // (
+      //   (oldLevel  == level)  &&
+      //   (oldScore  == score)  &&
+      //   (oldHealth == health)
+      // )
+    ) return;
+    statsLast=0;
+    debug.innerHTML=`
+HEALTH: ${healthText()}
+SCORE:  ${scoreText()}
+LEVEL:  ${levelText()}
+NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
+    `;
+  }
+  // HEALTH: ${health < 0 ? "💀💀💀" : Array(health).fill('💟').join('')}
+  // SCORE:  ${score} (${turrets.length})
+  // LEVEL:  ${level>10?Array(Math.floor(level/10)).fill('🐲').join(''):''}${Array(level%11).fill('🪖').join('')}
+  // `;
+
+  // NEXT:   ${((20-level)-lastspawn).toFixed(2)}
   // MOVS:   ${osdTime}
-  updateStats();
+  updateStats(0);
 
 
   let xvector    = new THREE.Vector3(0,0,10);
@@ -909,9 +955,10 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   let yray       = new THREE.Raycaster();
   let ballray    = new THREE.Raycaster();
 
-  let damagePos  = new THREE.Vector3();
+  let rayarr1 = [];
+  let rayarr2 = [];
 
-  const doCharacterMovement = (delta) => {
+  const doCharacterMovement = () => {
     const playerMixer = mixer     ['monitoringo.glb'];
     const playerAnims = animations['monitoringo.glb'];
 
@@ -987,11 +1034,12 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       xvector.y = 0; //direction_y;
       xvector.x = 0; //direction_x;
       xvector.normalize(); xray.set(xtarget, xvector);
-      xray.far = 5;
-      let xbound = xray.intersectObjects(floor.children);
+      xray.far = 10;
+      rayarr1.length=0;
+      let xbound = xray.intersectObjects(floor.children, false, rayarr1);
       // console.log(floor);
 
-      if(!xbound[0]){
+      // if(!xbound[0]){
       // if(true){
         ytarget.set(
           cube.position.x,
@@ -1003,10 +1051,12 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         yvector.x = direction_x;
         yvector.normalize(); yray.set(ytarget, yvector);
         yray.far = 10;
+        rayarr2.length=0;
+
         let ybound = (
           walls.type==="Group"
-            ? yray.intersectObjects(walls.children)
-            : yray.intersectObject (walls)
+            ? yray.intersectObjects(walls.children, false, rayarr2)
+            : yray.intersectObject (walls, false, rayarr2)
         );
 
         if(ybound[0] && ybound[0].distance < 3){
@@ -1030,7 +1080,6 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
           let v = ytarget;//.normalize();
           direction_x = v.x;
           direction_y = v.y;
-          dot = direction_x + ", "+ direction_x;
 
           cube.position.x += direction_x*(delta*30);
           cube.position.y += direction_y*(delta*30);
@@ -1056,9 +1105,10 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
           // // console.log(ybound[0]);
           // cube.position.x += (ybound[0].point.x*direction_x)*(delta*30);//*(delta*30);
           // cube.position.y += (ybound[0].point.y*direction_y)*(delta*30);//*(delta*30);
-          return;
+          // return;
         }
-      } else {
+      // } else {
+      if(xbound[0]){
         cube.position.x += direction_x*(delta*30);
         cube.position.y += direction_y*(delta*30);
         cube.position.z = xbound[0].point.z+0.5;
@@ -1068,120 +1118,9 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     } else {
       setAnimation(false);
     }
-
-    //
-    // if(false){
-    //
-    //     xtarget.copy(cube.position); xtarget.z = 1.5;
-    //     xvector.z = 0;
-    //     xvector.y = direction_y;
-    //     xvector.x = direction_x;
-    //     xvector.normalize(); xray.set(xtarget, xvector);
-    //     let xbound = xray.intersectObject(walls);
-    //     let ybound = [];
-    //     // ytarget.copy(cube.position); ytarget.z = 1.5;
-    //     // yvector.z = 0; yvector.x = 0; yvector.y = direction_y; yvector.normalize(); yray.set(ytarget, yvector);
-    //     // let ybound = yray.intersectObject(walls);
-    //
-    //     if(xbound[0]){
-    //       ytarget.set(
-    //         // direction_x*10,
-    //         // direction_y*10,
-    //         cube.position.x-xbound[0].point.x,
-    //         cube.position.y-xbound[0].point.y,
-    //         0
-    //       );
-    //       ytarget.projectOnPlane(xbound[0].face.normal);
-    //       ytarget.normalize();
-    //
-    //       yvector.copy(cube.position);
-    //
-    //       yray.set(yvector, ytarget);
-    //       ybound = yray.intersectObject(walls);
-    //
-    //       if(ybound[0]){
-    //         ytarget.copy(ybound[0].point);
-    //       } else {
-    //         ytarget.set(
-    //           direction_x*30,
-    //           direction_y*30,
-    //           0
-    //         );
-    //       }
-    //         // cube.position.add(xtarget);
-    //       // }
-    //     }
-    //
-    //     if(xbound.length==0 || xbound[0].distance>3){
-    //       cube.position.x += direction_x*(delta*30);
-    //       cube.position.y += direction_y*(delta*30);
-    //     } else {
-    //       if(ybound[0] && ybound[0].distance>2){
-    //         // ytarget.multiplyScalar(30*delta)
-    //         ybound[0].point.sub(cube.position);
-    //         ybound[0].point.normalize();
-    //         // console.log(ybound[0]);
-    //         cube.position.x += (ybound[0].point.x*direction_x)*(delta*30);//*(delta*30);
-    //         cube.position.y += (ybound[0].point.y*direction_y)*(delta*30);//*(delta*30);
-    //       }
-    //     }
-    //       // xtarget.set(
-    //       //   direction_x*30,
-    //       //   direction_y*30,
-    //       //   0
-    //       // );
-    //       // xtarget.projectOnPlane(xbound[0].face.normal);
-    //       // xtarget.normalize();
-    //       // yray.set(xbound[0].point, xtarget);
-    //       // let ybound = yray.intersectObject(walls);
-    //       // if(ybound.length == 0 || ybound[0].distance < 2){
-    //       //   //cube.position.add(xtarget);
-    //       // } else {
-    //       //   xtarget.set(
-    //       //     direction_x*(30*delta),
-    //       //     direction_y*(30*delta),
-    //       //     0
-    //       //   );
-    //       //   cube.position.add(xtarget);
-    //       // }
-    //     // }
-    //
-    //     if(xbound[0]){
-    //       // console.log(xbound[0]);
-    //       points[0] = xbound[0].point;
-    //       // xtarget.set(
-    //       //   direction_x*10,
-    //       //   direction_y*10,
-    //       //   0);
-    //       // xtarget.projectOnPlane(xbound[0].face.normal);
-    //       // xtarget.multiplyScalar(10);
-    //       // xtarget.add(points[1]);
-    //       points[2] = ytarget;
-    //       points[3] = xbound[0].point;
-    //     } else {
-    //       points[0] = cube.position;
-    //       points[2] = cube.position;
-    //       points[3] = cube.position;
-    //     }
-    //     points[1] = cube.position;
-    //
-    //     linegeo.setFromPoints(points);
-    //
-    //     // if(ybound.length==0 || ybound[0].distance>2){
-    //     //   cube.position.y += direction_y*(delta*30);
-    //     // } else {
-    //     //   ytarget.set(0, direction_y*(delta*30), 0);
-    //     //   ytarget.projectOnPlane(ybound[0].face.normal);
-    //     //   cube.position.add(ytarget);
-    //     // }
-    //   setAnimation(true);
-    // } else {
-    //   // setAnimation(false);
-    // }
-
   }
 
-  const doBoomzFrame = (delta) => {
+  const doBoomzFrame = () => {
     var i = boomz.length;
     // boomz.forEach((b, i) => {
     while(i--){
@@ -1191,8 +1130,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       b.scale.y+=15 * delta;
       b.scale.z+=15 * delta;
       if(b.magicValue!=undefined) {
-        // console.log("lf", b.magicValue);
-        lights[b.magicValue].intensity-=((15*4)*delta);
+        lights[b.magicValue].intensity-=((15*5)*delta);
       }
       if(b.scale.z > 3){
         if(b.magicValue!=undefined){
@@ -1218,7 +1156,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     cannons.splice(index,1);
   }
 
-  const doCannonsFrame = (delta) => {
+  const doCannonsFrame = () => {
     var cannonindex = cannons.length;
     while(cannonindex--) {
       var b = cannons[cannonindex];
@@ -1288,7 +1226,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     // console.log("turretHitEnd", t, ta);
   }
 
-  const doBallzFrame = (delta) => {
+  const doBallzFrame = () => {
     var i = ballz.length;
 
     while (i-- ) {
@@ -1320,7 +1258,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
       b.translateY(-50 * delta); // move along the local y-axis
     }
-  } // const doBallzFrame = (delta) =>
+  } // const doBallzFrame = () =>
 
 
   var cameraOrtho;
@@ -1339,20 +1277,21 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   const padUpdate = () => {
     let x = cursorMesh.position.x - padMesh.position.x;
     let y = cursorMesh.position.y - padMesh.position.y;
+    let slope  = y / x;
+    let radang = Math.atan2(y, x) ;
+    let absrad = Math.abs (radang);
+    let sgn    = Math.sign(radang);
 
-    let slope = y / x;
-    if(Math.abs(slope) < 1){
-      if(Math.sign(x) > 0) { movement[mov_R]=1; movement[mov_L]=0; }
-      if(Math.sign(x) < 0) { movement[mov_L]=1; movement[mov_R]=0; }
-    } else {
-    // if(Math.abs(slope) > 1){
-      if(Math.sign(y) > 0) { movement[mov_U]=1; movement[mov_D]=0; }
-      if(Math.sign(y) < 0) { movement[mov_D]=1; movement[mov_U]=0; }
-    }
-    // movement[6] = Math.abs(x).toFixed(3);
-    // movement[7] = Math.abs(y).toFixed(3);
-    if(Math.abs(x)<15) { movement[mov_R]=0; movement[mov_L]=0; }
-    if(Math.abs(y)<15) { movement[mov_U]=0; movement[mov_D]=0; }
+    movement[mov_L]=0;
+    movement[mov_R]=0;
+    movement[mov_D]=0;
+    movement[mov_U]=0;
+
+    score = `${absrad}`;
+    if(absrad >  1.9)                              { movement[mov_L]=1; }
+    if(absrad <  1.2)                              { movement[mov_R]=1; }
+    if(sgn > 0 &&  0.78 < radang && radang <  2.74) { movement[mov_U]=1; }
+    if(sgn < 0 && -0.78 > radang && radang > -2.74) { movement[mov_D]=1; }
   }
 
   if(options.use_osd){
@@ -1372,7 +1311,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     buttonMat         = padMat.clone();
     buttonMat.color   = new THREE.Color(0xffffff);
     padGeo            = new THREE.CircleGeometry( 80, 8 );
-    cursorGeo         = new THREE.CircleGeometry( 10, 4 );
+    cursorGeo         = new THREE.CircleGeometry( 30, 4 );
     buttonGeo         = new THREE.CircleGeometry( 20, 10 );
     padMesh           = new THREE.Mesh( padGeo,    padMat );
     cursorMesh        = new THREE.Mesh( cursorGeo, cursorMat );
@@ -1396,14 +1335,26 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     window.addEventListener("touchmove", (e)=>{
       var tl = e.changedTouches.length;
+      var elem         = renderer.domElement,
+          boundingRect = elem.getBoundingClientRect(),
+          x,
+          y;
+
       while(tl--){
         var touch = e.changedTouches[tl];
         if(touch.clientX < window.innerWidth/2){
+
+          x = (touch.clientX - boundingRect.left) ;//* (elem.width  / boundingRect.width),
+          y = (touch.clientY - boundingRect.top)  ;//* (elem.height / boundingRect.height);
+
           cursorMesh.position.set(
-            touch.clientX,
-            window.innerHeight-touch.clientY,
-            0
+             (x/renderer.domElement.clientWidth) *2-1,
+            -(y/renderer.domElement.clientHeight)*2+1,
+            // touch.clientX,
+            // window.innerHeight-touch.clientY,
+            -1
           );
+          cursorMesh.position.unproject(cameraOrtho);
           padUpdate();
         } else {
           buttonMesh.position.set(
@@ -1450,7 +1401,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       while(len--){
         if(e.changedTouches[len].clientX < window.innerWidth/2){
           //cursor
-          console.log("cursor move")
+          // console.log("cursor move")
           cursorId = e.changedTouches[len].identifier;
 
           // if(osdTime > 5){
@@ -1481,9 +1432,11 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     });
   }
 
-  const animate = function () {
-    requestAnimationFrame( animate );
-    let delta   = clock.getDelta();
+
+
+  let mixerkeys = null;
+  function animate() {
+    delta = clock.getDelta();
 
     lastspawn += delta;
     if(lastspawn > (20-level)){
@@ -1491,12 +1444,17 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       createTurret();
     };
 
-    doBallzFrame(delta);
-    doTurretFrame(delta);
-    doBoomzFrame(delta);
-    doCannonsFrame(delta);
+    doBallzFrame();
+    doTurretFrame();
+    doBoomzFrame();
+    doCannonsFrame();
 
-    doCharacterMovement(delta);
+    doCharacterMovement();
+
+    if(mixerkeys==null) mixerkeys = Object.keys(mixer);
+    let mixlen = mixerkeys.length;
+    while(mixlen--) mixer[mixerkeys[mixlen]].update( delta );
+
     updateStats();
 
     if(demo && turrets[demoindex]){
@@ -1508,23 +1466,22 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       camera.position.x = turrets[demoindex].position.x;
       camera.position.y = turrets[demoindex].position.y-10;
       camera.lookAt(turrets[demoindex].position);
+
     } else if(objects["taquerocat.glb"].scene.position.distanceTo(cube.position) < 10) {
       camera.position.x = cube.position.x;
       camera.position.y = objects["taquerocat.glb"].scene.position.y-20;
       camera.position.z = 10;
       camera.lookAt(objects["taquerocat.glb"].scene.position);
-    } else {
 
+    } else {
       camera.position.x = cube.position.x;
-      camera.position.y = cube.position.y-30;
-      camera.position.z = cube.position.z+55;
+      camera.position.y = cube.position.y-40;
+      camera.position.z = cube.position.z+25;
+      // camera.position.y = cube.position.y-40;
+      // camera.position.z = cube.position.z+55;
       camera.lookAt(cube.position);
     }
 
-    if(mixer) Object.keys(mixer).forEach((name) => {
-                // console.log(name);
-                mixer[name].update( delta );
-              });
 
     renderer.render(scene, camera);
     if(options.use_osd){
@@ -1532,34 +1489,35 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       renderer.clearDepth();
       renderer.render(sceneOrtho, cameraOrtho);
     }
+
+    requestAnimationFrame( animate );
+
   };
 
 
 
+ function resizeEvent(){
+   renderer.setSize( window.innerWidth, window.innerHeight );
+
+   // camera.aspect = window.innerWidth / window.innerHeight;
+   const aspect = window.innerWidth / window.innerHeight;
+   camera.aspect = aspect;
+   camera.updateProjectionMatrix();
+
+
+   cameraOrtho.left       = - window.innerWidth  / 2;
+   cameraOrtho.right      =   window.innerWidth  / 2;
+   cameraOrtho.top        =   window.innerHeight / 2;
+   cameraOrtho.bottom     = - window.innerHeight / 2;
+   cameraOrtho.position.x =   window.innerWidth  / 2;
+   cameraOrtho.position.y =   window.innerHeight / 2;
+   padMesh    .position.set(  window.innerWidth  / 4,
+     window.innerHeight / 4,
+     0);
+     cameraOrtho.updateProjectionMatrix();
+ }
   window.addEventListener(
     'resize',
-    ()=>{
-    	camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-
-    	const aspect = window.innerWidth / window.innerHeight;
-
-      cameraOrtho.left       = - window.innerWidth  / 2;
-			cameraOrtho.right      =   window.innerWidth  / 2;
-			cameraOrtho.top        =   window.innerHeight / 2;
-			cameraOrtho.bottom     = - window.innerHeight / 2;
-      cameraOrtho.position.x =   window.innerWidth  / 2;
-      cameraOrtho.position.y =   window.innerHeight / 2;
-      padMesh    .position.set(  window.innerWidth  / 4,
-                                 window.innerHeight / 4,
-                                 0);
-    	cameraOrtho.updateProjectionMatrix();
-
-      // cameraOrtho       = new THREE.OrthographicCamera( - window.innerWidth / 2, window.innerWidth / 2, window.innerHeight / 2, - window.innerHeight / 2, 1, 20 );
-
-    	renderer.setSize( window.innerWidth, window.innerHeight );
-      // fxaaPass.material.uniforms[ 'resolution' ].value.x = 1 / ( window.innerWidth  * renderer.getPixelRatio() );
-      // fxaaPass.material.uniforms[ 'resolution' ].value.y = 1 / ( window.innerHeight * renderer.getPixelRatio() );
-    },
+    resizeEvent,
     false
 );
