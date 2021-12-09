@@ -75,7 +75,7 @@
 
   let delta = 0;
 
-  debug.innerHTML="WHAT";
+  // debug.innerHTML="WHAT";
 
   // scene.fog = new THREE.Fog(new THREE.Color(0xc0c0c0), 100, 150);
   renderer.debug.checkShaderErrors = false;
@@ -85,8 +85,9 @@
   // renderer.outputEncoding = THREE.sRGBEncoding;
   // renderer.setPixelRatio( window.devicePixelRatio );
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.8;
-  // renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMappingExposure = 0.6;
+  renderer.gammaFactor = 2.2;
+  renderer.outputEncoding = THREE.sRGBEncoding;
 
   document.body.appendChild( renderer.domElement );
 
@@ -269,11 +270,16 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
             gltf.scene.position.x = -12;
             scene.add( gltf.scene );
 
+            let gatomation = animations['taquerocat.glb'];
+            let gatomixer  = mixer     ['taquerocat.glb'];
+            gatomixer.clipAction(gatomation.idle).play();
+
           }
 
           if(path=="stage.glb"){
             // console.log( gltf.scene );
             // scene.add( Object.values(gltf.scene.children).find(k=>k.name=="levelMesh") );
+            gltf.scene.matrixAutoUpdate=false;
             scene.add( gltf.scene );
             // Object.values(gltf.scene.children).map(k=>k.visible = false );
             walls = Object.values(gltf.scene.children).find(k=>k.name=="walls" );
@@ -410,6 +416,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       turrets[index].children.find(k=>k.type=='Audio').stop();
     }
 
+    if(turrets[index].lifemeter) scene.remove(turrets[index].lifemeter);
     scene.remove(turrets[index]);
     scene.remove(turrets[index].children.find(k=>k.type=='Audio'));
     turrets      .splice(index,1);//= null;
@@ -420,7 +427,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   var turrcount = 0;
   const createTurret = () => {
     turrcount++;
-    // if(turrcount>1)
+    if(turrcount>1)
     return;
 
 
@@ -436,9 +443,12 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
     let turret = objects["turret.glb"].scene.clone();
     let lifemeter = life.clone();
-    turret.add(lifemeter);
+    lifemeter.up = camera.up;
+    lifemeter.lookAt(camera.position);
+    turret.lifemeter = lifemeter;
+    scene.add(lifemeter);
 
-    turret.position.set(1,1,0);
+    turret.position.set(10,10,0);
     // turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
 
     cloneMaterial(turret);
@@ -755,9 +765,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         }
       }
     }
-
-    // console.log(turret);
     materialupdate(turret);
+
     var len = turret.children.length;
     while(len--){
       materialupdate(turret.children[len]);
@@ -766,6 +775,13 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         while(n--) materialupdate(turret.children[len].children[n]);
       }
     }
+
+    if(turret.lifemeter) {
+      turret.lifemeter.quaternion.copy(camera.quaternion);
+      turret.lifemeter.position.copy(turret.position);
+      turret.lifemeter.position.z += 7;
+    }
+    // if(turret.lifemeter) turret.lifemeter.rotation.copy(camera.rotation);
 
     switch(t.state){
       case "rot":
@@ -808,7 +824,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
           break;
         }
 
-        const ray = () => {
+        // const ray = () => {
           balltarget.copy(turret.position);
           balltarget.z=3;
 
@@ -821,21 +837,35 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
           ballray.set(balltarget, ballvector);
           let ballbound;
-          ballbound = ballray.intersectObject(walls);
+          rayarr1.length=0;
+          ballbound = ballray.intersectObject(walls, false, rayarr1);
+          // console.log(ballbound);
 
           turret.position.copy(balltarget);
           turret.position.z=0;
-
           if(ballbound[0] && ballbound[0].distance > 4){
-            turret.translateY((6 * delta)*t.reverse);
-          } else {
-            t.reverse = 1;
           }
-        }
+          turret.translateY((6 * delta)*t.reverse);
+          // if(ballbound[0] && ballbound[0].distance < 4){
+          //   t.reverse = 1;
+          // }
 
-        ray();
+          xtarget.copy(turret.position);
+          xtarget.z += 3;
+          xvector.set(0,0,-1);
+          xray.set(xtarget, xvector);
+          rayarr2.length=0;
+          let zbound = floor.children[0]
+            ? xray.intersectObjects(floor.children, false, rayarr2)
+            : xray.intersectObject(floor, false, rayarr2);
 
-        if(t.timeDelta > t.timeMove || turret.position.distanceTo(cube.position) < 15){
+          if(zbound[0]){
+            turret.position.z = zbound[0].point.z;
+          }
+
+
+
+        if(t.timeDelta > t.timeMove || turret.position.distanceTo(cube.position) < 30){
           t.state = "shot";
           t.moving = false;
         }
@@ -971,7 +1001,13 @@ NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
       -direction_y
     ); // witchcraft from stockoverflaw
 
-    if(direction_x || direction_y) cube.rotation.z = rotz;
+    if(direction_x || direction_y) {
+      cube.rotation.z = rotz;
+      lookAtLerp.set(
+        cube.position.x + (direction_x*6),
+        cube.position.y + (direction_y*6),
+        cube.position.z );
+    }
 
     if(movement[mov_HURT]){
       damageTime += delta;
@@ -1432,7 +1468,8 @@ NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
     });
   }
 
-
+  let lookAtTarget = new THREE.Vector3();
+  let lookAtLerp   = new THREE.Vector3();
 
   let mixerkeys = null;
   function animate() {
@@ -1474,12 +1511,14 @@ NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
       camera.lookAt(objects["taquerocat.glb"].scene.position);
 
     } else {
-      camera.position.x = cube.position.x;
-      camera.position.y = cube.position.y-40;
-      camera.position.z = cube.position.z+25;
-      // camera.position.y = cube.position.y-40;
-      // camera.position.z = cube.position.z+55;
-      camera.lookAt(cube.position);
+      lookAtTarget.lerp(lookAtLerp, 0.2);//4*delta);
+      camera.position.x = lookAtTarget.x;
+      camera.position.y = lookAtTarget.y-30;
+      camera.position.z = cube.position.z+55;
+      // // camera.position.y = cube.position.y-50;
+      // // camera.position.z = cube.position.z+35;
+      camera.lookAt(lookAtTarget);
+      // camera.lookAt(cube.position);
     }
 
 
@@ -1504,17 +1543,18 @@ NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
    camera.aspect = aspect;
    camera.updateProjectionMatrix();
 
-
-   cameraOrtho.left       = - window.innerWidth  / 2;
-   cameraOrtho.right      =   window.innerWidth  / 2;
-   cameraOrtho.top        =   window.innerHeight / 2;
-   cameraOrtho.bottom     = - window.innerHeight / 2;
-   cameraOrtho.position.x =   window.innerWidth  / 2;
-   cameraOrtho.position.y =   window.innerHeight / 2;
-   padMesh    .position.set(  window.innerWidth  / 4,
-     window.innerHeight / 4,
-     0);
-     cameraOrtho.updateProjectionMatrix();
+   if(options.use_osd){
+     cameraOrtho.left       = - window.innerWidth  / 2;
+     cameraOrtho.right      =   window.innerWidth  / 2;
+     cameraOrtho.top        =   window.innerHeight / 2;
+     cameraOrtho.bottom     = - window.innerHeight / 2;
+     cameraOrtho.position.x =   window.innerWidth  / 2;
+     cameraOrtho.position.y =   window.innerHeight / 2;
+     padMesh    .position.set(  window.innerWidth  / 4,
+       window.innerHeight / 4,
+       0);
+       cameraOrtho.updateProjectionMatrix();
+   }
  }
   window.addEventListener(
     'resize',
