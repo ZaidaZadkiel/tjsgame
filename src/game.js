@@ -39,7 +39,8 @@
     loadingscreen.style.visibility="hidden";
     document.getElementById("info").style.visibility="hidden";
 
-    if(!audioDebug) sound.play();
+    console.log(sound);
+
     createTurret();
     // createTurret();
     // createTurret();
@@ -88,6 +89,8 @@
   renderer.toneMappingExposure = 0.6;
   renderer.gammaFactor = 2.2;
   renderer.outputEncoding = THREE.sRGBEncoding;
+
+  // let tryLight = new THREE.
 
   document.body.appendChild( renderer.domElement );
 
@@ -162,7 +165,6 @@
 
 
 const listener = new THREE.AudioListener();
-;
 
 
 let sound     = new THREE.Audio(listener);
@@ -174,11 +176,13 @@ let tankmotor = null
 let kapow     = null
 
 const audioLoader = new THREE.AudioLoader(manager);
-audioLoader.load( "./sound/test.mp3", function( buffer ) {
-  // console.log("bgm");
+audioLoader.load( "./sound/kakariko_village.mp3", function( buffer ) {
+// audioLoader.load( "./sound/test.mp3", function( buffer ) {
+  console.log("bgm");
   sound.setBuffer( buffer );
-  sound.setLoop( true );
-  sound.setVolume( 0.05 );
+  sound.setLoop  ( true );
+  sound.setVolume( 0.5 );
+  if(!audioDebug) sound.play();
 });
 audioLoader.load( "./sound/tank.mp3", function( buffer ) {
   // console.log("tank");
@@ -266,7 +270,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
           if(path == 'taquerocat.glb'){
             console.log("loled");
-            gltf.scene.position.y = 35;
+            gltf.scene.position.y = 15;
             gltf.scene.position.x = -12;
             scene.add( gltf.scene );
 
@@ -325,7 +329,6 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
         // let d = Object.keys(animations['monitoringo.glb']).forEach((item, i) => {
         //   console.log(item, "isRunning", mixer['monitoringo.glb'].clipAction(animations['monitoringo.glb'][item]).isRunning());
         // });
-
         // if(movement[mov_SHOT]==1) return;
         switch(event.which){
           // case 80: createTurret(); break;
@@ -333,11 +336,12 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
           case 32:
                   if(movement[mov_SHOT]==0) shotstart = 0;
                   movement[mov_SHOT] = 2;
+                  event.preventDefault();
                   break; //cant move when shooting
-          case 38: movement[mov_U]    = 1; break;
-          case 40: movement[mov_D]    = 1; break;
-          case 37: movement[mov_L]    = 1; break;
-          case 39: movement[mov_R]    = 1; break;
+          case 38: movement[mov_U]    = 1; event.preventDefault(); break;
+          case 40: movement[mov_D]    = 1; event.preventDefault(); break;
+          case 37: movement[mov_L]    = 1; event.preventDefault(); break;
+          case 39: movement[mov_R]    = 1; event.preventDefault(); break;
           default:
             // console.log(`new THREE.Vector3(${cube.position.x.toFixed(3)}, ${cube.position.y.toFixed(3)}, 0),`);
             // console.log(event.which)
@@ -373,35 +377,33 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   var turretMixer     = [];
   var turretAction    = []
   var turretpositions = [
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(-76.407, -135.438, 0),
-    new THREE.Vector3(-39.942, -133.980, 0),
-    new THREE.Vector3(-44.943, -106.047, 0),
-    new THREE.Vector3( 39.213, -102.942, 0),
-    new THREE.Vector3(-48.126,  69.936,  0),
-    new THREE.Vector3(-53.970, -16.329,  0),
-    new THREE.Vector3(-53.970, -45.267,  0),
-    new THREE.Vector3(-14.607, -52.563,  0),
-    new THREE.Vector3( 21.858, -52.563,  0),
-    new THREE.Vector3(-22.524, -92.985,  0),
-    new THREE.Vector3( 15.411, -92.985,  0),
-    new THREE.Vector3( 73.296, -149.442, 0),
-    new THREE.Vector3( 39.123, -149.442, 0),
-    new THREE.Vector3(  1.416, -149.442, 0),
-    new THREE.Vector3(-90.252, -97.587,  0),
-    new THREE.Vector3(-90.252, -89.241,  0),
-    new THREE.Vector3(-90.252, -75.495,  0),
-    new THREE.Vector3(-90.252, -25.926,  0),
-    new THREE.Vector3(-90.252,  17.616,  0),
-    new THREE.Vector3(-90.252,  65.325,  0),
-    new THREE.Vector3(-90.252,  105.330, 0),
-    new THREE.Vector3(-43.596,  114.270, 0),
-    new THREE.Vector3( 11.619,  114.270, 0),
-    new THREE.Vector3( 60.138,  114.270, 0),
-    new THREE.Vector3( 73.896,  73.659,  0),
-    new THREE.Vector3( 54.549,  73.659,  0),
-    new THREE.Vector3( 60.939,  90.030,  0),
-    new THREE.Vector3( 39.213, -139.179, 0)
+    new THREE.Vector3(0.000, -5.634, 0),
+    new THREE.Vector3(-40.836, -5.634, 0),
+    new THREE.Vector3(-56.052, -51.663, 0),
+    new THREE.Vector3(-56.052, -112.491, 0),
+    new THREE.Vector3(-2.697, -112.491, 0),
+    new THREE.Vector3(43.107, -112.491, 0),
+    new THREE.Vector3(59.586, -62.295, 0),
+    new THREE.Vector3(130.830, -31.839, 0),
+    new THREE.Vector3(187.695, -116.010, 0),
+    new THREE.Vector3(38.121, -127.266, 0),
+    new THREE.Vector3(-70.416, -123.114, 0),
+    new THREE.Vector3(-138.315, -113.940, 0),
+    new THREE.Vector3(-203.118, -13.944, 0),
+    new THREE.Vector3(-216.252, 19.590, 0),
+    new THREE.Vector3(-242.901, 97.707, 0),
+    new THREE.Vector3(-187.059, 123.174, 0),
+    new THREE.Vector3(-117.282, 133.161, 0),
+    new THREE.Vector3(-36.478, 58.350, 0),
+    new THREE.Vector3(-125.008, -28.746, 0),
+    new THREE.Vector3(33.134, 85.797, 0),
+    new THREE.Vector3(37.706, 173.316, 0),
+    new THREE.Vector3(61.259, 203.097, 0),
+    new THREE.Vector3(74.381, 253.107, 0),
+    new THREE.Vector3(74.381, 294.759, 0),
+    new THREE.Vector3(47.699, 327.471, 0),
+    new THREE.Vector3(2.948, 257.466, 0),
+    new THREE.Vector3(-32.242, 237.885, 0)
   ];
 
   const removeturret = (index)=> {
@@ -416,6 +418,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       turrets[index].children.find(k=>k.type=='Audio').stop();
     }
 
+    if(turrets[index].ptr) scene.remove(turrets[index].ptr);
     if(turrets[index].lifemeter) scene.remove(turrets[index].lifemeter);
     scene.remove(turrets[index]);
     scene.remove(turrets[index].children.find(k=>k.type=='Audio'));
@@ -424,11 +427,20 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     turretAction .splice(index,1);//= null;
   }
 
+
+  var triangleGeo   = new THREE.CircleGeometry( 1, 3 );
+  triangleGeo.translate(3,0,3);
+  const triangleMat = new THREE.MeshBasicMaterial( { color: 0xff2020 } );
+  var triangle      = new THREE.Mesh(triangleGeo, triangleMat);
+
+
+
   var turrcount = 0;
   const createTurret = () => {
     turrcount++;
-    if(turrcount>1)
-    return;
+
+    // if(turrcount>1)
+    // return;
 
 
 
@@ -448,8 +460,12 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     turret.lifemeter = lifemeter;
     scene.add(lifemeter);
 
-    turret.position.set(10,10,0);
-    // turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
+    let triPtr = triangle.clone();
+    turret.ptr = triPtr;
+    scene.add(triPtr);
+
+    // turret.position.set(10,10,0);
+    turret.position.copy(turretpositions[getRandomInt(turretpositions.length-1)]);
 
     cloneMaterial(turret);
     var i = turret.children.length;
@@ -739,6 +755,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   const tankStates = [
     "rot", "mov", "shot"
   ];
+
   const doTurretAction = (turret, t, enemixer) => {
     // let t      = turretAction[index];
     // let turret = turrets[index];
@@ -782,6 +799,26 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       turret.lifemeter.position.z += 7;
     }
     // if(turret.lifemeter) turret.lifemeter.rotation.copy(camera.rotation);
+
+    if(turret.ptr) {
+      turret.ptr.position.copy(cube.position);
+      // turret.ptr.quaternion.copy(camera.quaternion);
+      // testAngle = turret.position.angleTo(turret.ptr.position)
+      // turret.ptr.rotation.z = testAngle;
+      // console.log(testAngle );
+
+      let vectorB = cube.position;
+      let vectorA = turret.position;
+      let radang  = Math.atan2(
+                      vectorA.y - vectorB.y,
+                      vectorA.x - vectorB.x
+                    );
+
+      turret.ptr.rotation.set(0,0, radang );
+      // turret.ptr.rotation.z = turret.position.angleTo(turret.ptr.position));
+      // turret.ptr.lookAt(turret.position);
+      // turret.ptr.position.z += 7;
+    }
 
     switch(t.state){
       case "rot":
@@ -946,6 +983,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
   let statsLast = 1;
   const updateStats = () => {
+    return;
     statsLast += delta;
     if(
       false &&
@@ -1511,7 +1549,7 @@ NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
       camera.lookAt(objects["taquerocat.glb"].scene.position);
 
     } else {
-      lookAtTarget.lerp(lookAtLerp, 0.2);//4*delta);
+      lookAtTarget.lerp(lookAtLerp, 6*delta);
       camera.position.x = lookAtTarget.x;
       camera.position.y = lookAtTarget.y-30;
       camera.position.z = cube.position.z+55;
