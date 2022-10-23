@@ -1,10 +1,15 @@
   'use strict';
 
-  import * as THREE         from 'three';
-  import { FXAAShader }     from 'three/examples/jsm/shaders/FXAAShader.js';
-  import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-  import { ShaderPass }     from 'three/examples/jsm/postprocessing/ShaderPass.js';
-  import { RenderPass }     from 'three/examples/jsm/postprocessing/RenderPass.js';
+  import * as THREE              from 'three';
+  import { FXAAShader }          from 'three/examples/jsm/shaders/FXAAShader.js';
+  import { EffectComposer }      from 'three/examples/jsm/postprocessing/EffectComposer.js';
+  import { ShaderPass }          from 'three/examples/jsm/postprocessing/ShaderPass.js';
+  import { RenderPass }          from 'three/examples/jsm/postprocessing/RenderPass.js';
+  import { RoomEnvironment }     from 'three/examples/jsm/environments/RoomEnvironment.js';
+  import { BufferGeometryUtils } from "three/examples/jsm/utils/BufferGeometryUtils";
+
+
+  import {imgloader, loadAll} from './loader';
 
   let loadingscreen = document.getElementById("progress");
   loadingscreen.style.visibility="visible";
@@ -12,11 +17,11 @@
   let options = JSON.parse(localStorage.getItem("options"));
   if(!options){
     options = {
-      use_aa  :   false,
-      use_osd :   false,
-      run_demo:   false,
+      use_aa    : false,
+      use_osd   : false,
+      run_demo  : false,
       play_sound: true,
-      do_board:   false
+      do_board  : false
     };
   }
 
@@ -24,87 +29,41 @@
 
   const audioDebug = !options.play_sound
   console.log("audioDebug", audioDebug);
-  let demo      = options.run_demo;
-  var demotime  = 0;
-  var demoindex = 0;
-
-
-  const manager = new THREE.LoadingManager();
-  manager.onStart = function ( url, itemsLoaded, itemsTotal ) {
-  	console.log( 'Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
-  };
-
-  manager.onLoad = function ( ) {
-  	// console.log( 'Loading complete!');
-    loadingscreen.style.visibility="hidden";
-    document.getElementById("info").style.visibility="hidden";
-
-    console.log(sound);
-
-    createTurret();
-    // createTurret();
-    // createTurret();
-
-    lights.forEach(l=>scene.add(l));
-
-    animate();
-
-    // renderer.shadowMapEnabled = true;
-    // renderer.shadowMapSoft = true;
-    // renderer.shadowMapType = THREE.PCFShadowMap;
-
-
-
-  };
-
-
-  manager.onProgress = function ( url, itemsLoaded, itemsTotal ) {
-  	// console.log( 'Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
-    loadingscreen.style.width=`${(100*itemsLoaded)/itemsTotal}%`;
-    // console.log(loadingscreen.style.width)
-  };
-
-  manager.onError = function ( url ) {
-  	console.log( 'There was an error loading ' + url );
-  };
-
+  let demo         = options.run_demo;
+  let demotime     = 0;
+  let demoindex    = 0;
 
   const scene    = new THREE.Scene();
   const camera   = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 10, 300 );
   const renderer = new THREE.WebGLRenderer({alpha: true, antialias: (!!options.use_aa)});
   const debug    = document.getElementById("debug");
 
-  let delta = 0;
+  let statuescount = 10;
+  let coincount    = 10; //max number of coins in screen
+  let gatostatue   = null;
+  let gatocoin     = null;
+  let delta        = 0;
 
   // debug.innerHTML="WHAT";
 
   // scene.fog = new THREE.Fog(new THREE.Color(0xc0c0c0), 100, 150);
   renderer.debug.checkShaderErrors = false;
-  renderer.autoClear = false;
   renderer.setSize( window.innerWidth, window.innerHeight );
   // renderer.physicallyCorrectLights = true;
-  // renderer.outputEncoding = THREE.sRGBEncoding;
   // renderer.setPixelRatio( window.devicePixelRatio );
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.autoClear           = false;
+  renderer.toneMapping         = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.6;
-  renderer.gammaFactor = 2.2;
-  renderer.outputEncoding = THREE.sRGBEncoding;
-
-  // let tryLight = new THREE.
+  renderer.gammaFactor         = 2.2;
+  renderer.outputEncoding      = THREE.sRGBEncoding;
 
   document.body.appendChild( renderer.domElement );
 
-  // import { OrbitControls }   from 'three/examples/jsm/controls/OrbitControls.js';
-  import { GLTFLoader }      from 'three/examples/jsm/loaders/GLTFLoader.js';
-  import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-
   // const controls  = new OrbitControls(camera, renderer.domElement);
-  const imgloader = new THREE.TextureLoader(manager);
   const geometry  = new THREE.BoxGeometry();
   const material  = new THREE.MeshBasicMaterial({map: imgloader.load("img/wall.jpg") });
   const clock     = new THREE.Clock();
   material.flatShading = true;
-
 
   var linematerial;
   var points;
@@ -133,10 +92,10 @@
   const pmremGenerator = new THREE.PMREMGenerator( renderer );
   pmremGenerator.compileEquirectangularShader();
 
-  const loader         = new GLTFLoader(manager);
   scene.background     = new THREE.Color( 0xbbbbbb );
   scene.environment    = pmremGenerator.fromScene( environment ).texture;
-  const movement       = [0,0,0,0, 0, 0]; //Y pos X pos Animation on/off
+
+  const movement = [0,0,0,0, 0, 0]; //Y pos X pos Animation on/off
   const mov_L    = 0;
   const mov_R    = 1;
   const mov_U    = 2;
@@ -163,163 +122,185 @@
 
 //-----Sound--------------------------
 
+  const listener = new THREE.AudioListener();
 
-const listener = new THREE.AudioListener();
+  let sound     = new THREE.Audio(listener);
+  let pew       = null; //new THREE.AudioBuffer(listener);
+  let bang      = null; //new THREE.AudioBuffer(listener);
+  let taptap    = null;
+  let walking   = null;
+  let tankmotor = null
+  let kapow     = null
+  let coinget   = null;
+  let coindrop  = null;
 
+//-----Models--------------------------
 
-let sound     = new THREE.Audio(listener);
-let pew       = null; //new THREE.AudioBuffer(listener);
-let bang      = null; //new THREE.AudioBuffer(listener);
-let taptap    = null;
-let walking   = null;
-let tankmotor = null
-let kapow     = null
+  let scenemixer = new THREE.AnimationMixer( scene );
+  let mixer      = [];
+  let objects    = [];
+  let animations = [];
+  let walls      = null;
+  let floor      = null;
+  let statues    = null;
+  let coins      = [];
 
-const audioLoader = new THREE.AudioLoader(manager);
-audioLoader.load( "./sound/kakariko_village.mp3", function( buffer ) {
-// audioLoader.load( "./sound/test.mp3", function( buffer ) {
-  console.log("bgm");
-  sound.setBuffer( buffer );
-  sound.setLoop  ( true );
-  sound.setVolume( 0.5 );
-  if(!audioDebug) sound.play();
-});
-audioLoader.load( "./sound/tank.mp3", function( buffer ) {
-  // console.log("tank");
-  tankmotor = buffer;
-});
-audioLoader.load( "./sound/pew.mp3", function( buffer ) {
-  // console.log("pew");
-  pew  = buffer;
-});
-audioLoader.load( "./sound/bang.mp3", function( buffer ) {
-  // console.log("bang");
-  bang = buffer;
-});
-audioLoader.load( "./sound/kapow.mp3", function( buffer ) {
-  // console.log("kapow");
-  kapow = buffer;
-});
-audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
-  // console.log("taptap");
-  taptap = buffer;
-  walking = new THREE.Audio(listener);
-  walking.setBuffer(taptap);
-  walking.setVolume(0.25);
-  walking.setLoop(true);
-});
+  const update_load = (url, itemsLoaded, itemsTotal) => {
+    loadingscreen.style.width=`${(100*itemsLoaded)/itemsTotal}%`;
+  }
 
-//--------------------------------------
-
-
-
-
-
-  var scenemixer = new THREE.AnimationMixer( scene );
-  var mixer      = [];
-  var objects    = [];
-  var animations = [];
-  var walls      = null;
-  var floor      = null;
-
-  const loadGLTFPhilez = (paths) => {
-    if(!Array.isArray(paths)) {
-      console.log("Error with loading paths");
-      return null;
-    }
-
-    paths.forEach((path, i) => {
-      console.log("path index", i, `mod/${path}`);
-
-      loader.load(
-        `mod/${path}`,
-        ( gltf ) => {
-          objects[path] = gltf;
-
-          if(gltf.animations[0]){
-            mixer[path] = new THREE.AnimationMixer( gltf.scene );
-            gltf.animations.forEach((item, i) => {
-              if(!animations[path]) animations[path] = {};
-              animations[path][item.name] = item;
-            });
-
-            // var action = mixer[path].clipAction( animations[path][0] )
-            // action.loop = THREE.LoopRepeat;
-            // action.reset().play();
-          }
-
-
-          if(path == 'monitoringo.glb'){
-            cube = gltf.scene;
-            // let light = new THREE.PointLight(0xffffff, 8, 20);
-            // light.position.y=-10;
-            // cube.add(light);
-            scene.add(cube);
-            cube.add( listener );
-            cube.position.z =1
-            // magic values :D
-            const playerMixer      = mixer     ['monitoringo.glb'];
-            const playerAnimations = animations['monitoringo.glb'];
-            playerMixer.clipAction( playerAnimations.Shooting ) .clampWhenFinished = true;
-            playerMixer.clipAction( playerAnimations.Shooting ) .loop              = THREE.LoopOnce;
-            playerMixer.clipAction( playerAnimations.Damaged )  .loop              = THREE.LoopOnce;
-            playerMixer.clipAction( playerAnimations.Shooting ) .stop();
-            playerMixer.clipAction( playerAnimations.Running )  .stop();
-            playerMixer.clipAction( playerAnimations.Breathing ).play();
-          }
-
-          if(path == 'taquerocat.glb'){
-            console.log("loled");
-            gltf.scene.position.y = 15;
-            gltf.scene.position.x = -12;
-            scene.add( gltf.scene );
-
-            let gatomation = animations['taquerocat.glb'];
-            let gatomixer  = mixer     ['taquerocat.glb'];
-            gatomixer.clipAction(gatomation.idle).play();
-
-          }
-
-          if(path=="stage.glb"){
-            // console.log( gltf.scene );
-            // scene.add( Object.values(gltf.scene.children).find(k=>k.name=="levelMesh") );
-            gltf.scene.matrixAutoUpdate=false;
-            scene.add( gltf.scene );
-            // Object.values(gltf.scene.children).map(k=>k.visible = false );
-            walls = Object.values(gltf.scene.children).find(k=>k.name=="walls" );
-            floor = Object.values(gltf.scene.children).find(k=>k.name=="floor" );
-            // walls.material.side = THREE.FrontSide;
-
-            walls.visible=false;
-
-            // floor.visible=false;
-            // scene.add( walls );
-            // console.log(walls);
-            // objects[path].scene.position.z=-100;
-          }
-
-          if(i > 1) return; //??? we just hide the turrets for now
-          // scene.add( gltf.scene );
-
-        },
-        (progress) => {
-          //this callback DURING loading philez
-        },
-        ( error ) => {
-          console.error( error );
-        }
-      ); // loader.load(
-
-    });
-
-  } // loadGLTFPhilez()
-  loadGLTFPhilez(
+  loadAll(
+    [
+      "kakariko_village.mp3",
+      "tank.mp3",
+      "pew.mp3",
+      "bang.mp3",
+      "kapow.mp3",
+      "taptap.mp3",
+      "coinget.mp3",
+      "coindrop.mp3"
+    ],
     [
       "monitoringo.glb", //this guy is hardcoded at index 0, do not add above
       "stage.glb",
       "turret.glb",
-      "taquerocat.glb"
-    ]
+      "taquerocat.glb",
+      "gatostatue.glb"
+    ],
+    update_load
+  ).then(
+    ({sounds, models}) => {
+      console.log("loadall return", {sounds, models})
+
+
+      objects    = models.objects;
+      mixer      = models.mixer;
+      animations = models.animations;
+
+      cube = objects['monitoringo.glb'].scene;
+      cube.add( listener );
+      cube.position.z =1
+
+      // magic values :D
+      const playerMixer      = mixer     ['monitoringo.glb'];
+      const playerAnimations = animations['monitoringo.glb'];
+      playerMixer.clipAction( playerAnimations.Shooting ) .clampWhenFinished = true;
+      playerMixer.clipAction( playerAnimations.Shooting ) .loop              = THREE.LoopOnce;
+      playerMixer.clipAction( playerAnimations.Damaged )  .loop              = THREE.LoopOnce;
+      playerMixer.clipAction( playerAnimations.Shooting ) .stop();
+      playerMixer.clipAction( playerAnimations.Running )  .stop();
+      playerMixer.clipAction( playerAnimations.Breathing ).play();
+
+      let taquerocat = objects   ['taquerocat.glb'];
+      let gatomation = animations['taquerocat.glb'];
+      let gatomixer  = mixer     ['taquerocat.glb'];
+      taquerocat.scene.position.y = 15;
+      taquerocat.scene.position.x = -12;
+      gatomixer.clipAction(gatomation.idle).play();
+
+      let stage = objects['stage.glb']
+      stage.scene.matrixAutoUpdate=false;
+      let children = Object.values(stage.scene.children);
+      walls   = children.find(k=>k.name=="walls" );
+      walls.visible=false;
+
+      floor   = children.find(k=>k.name=="floor" );
+      statues = children.filter(k=>k.name.startsWith("statue_p") );
+      if(statues){
+        statuescount = statues.length;
+      }
+
+
+      console.log({walls, floor, statues})
+      let statuegeos = [];
+      let coingeo    = null;
+      let coinmat    = null;
+      let material   = null;
+
+      let n = null;
+
+      objects['gatostatue.glb'].scene.traverse(
+        x=>{
+          if(x.isMesh && x.name.startsWith("LPCoin")){
+            console.log("coin")
+            coingeo = x.geometry; //assuming there is only 1 geo for the coin
+            coinmat = x.material;
+            coinmat.emissiveIntensity = 2;
+            n = x;
+          }
+
+          if(x.isMesh && x.name.startsWith("LPGatoMesh")){
+            console.log("prep scene gatostatue", x)
+            statuegeos.push(x.geometry);
+          }
+          if(!material) material = x.material;
+      });
+
+      const geometry = BufferGeometryUtils.mergeBufferGeometries(statuegeos, false);
+      gatostatue = new THREE.InstancedMesh( geometry, material, statuescount);
+      // gatocoin   = new THREE.InstancedMesh( geometry, material, coincount);
+      gatocoin   = new THREE.InstancedMesh( coingeo,  coinmat,  coincount);
+      // console.log(coingeo,  coinmat,  coincount)
+
+      for (var i = 0; i < coincount; i++) {
+        coins[i] = new THREE.Object3D();
+        coins[i].position.set((i*3) - 10,5,0);
+        coins[i].position.z = 3;
+        coins[i].scale.set(10,10,10);
+        coins[i].rotation.set(Math.PI,0,0,0)
+        coins[i].audio = {
+            drop: new THREE.Audio(listener),
+            get:  new THREE.Audio(listener)
+        };
+        coins[i].audio.get.setBuffer(sounds['coinget.mp3']);
+        coins[i].audio.get.setVolume(1);
+        coins[i].audio.get.setLoop(false);
+
+        coins[i].updateMatrix();
+        // console.log(i, coins[i].position)
+        gatocoin.setMatrixAt(i, coins[i].matrix);
+      }
+
+      for (var i = 0; i < statuescount; i++) {
+        statues[i].position.copy(statues[i].position);
+        statues[i].position.z = 0;
+        statues[i].rotation.copy(statues[i].rotation);
+        statues[i].updateMatrix();
+        // console.log(i, statues[i], statues[i])
+        gatostatue.setMatrixAt(i, statues[i].matrix);
+      }
+      gatocoin.needsUpdate=true;
+      scene.add(gatostatue)
+      scene.add(gatocoin)
+
+
+      pew       = sounds['pew.mp3'];
+      bang      = sounds['bang.mp3'];
+      taptap    = sounds['taptap.mp3'];
+      tankmotor = sounds['tank.mp3'];
+      kapow     = sounds['kapow.mp3'];
+      coinget   = sounds['coinget.mp3'];
+      coindrop  = sounds['coindrop.mp3'];
+      walking   = new THREE.Audio(listener);
+
+      walking.setBuffer(taptap);
+      walking.setVolume(0.25);
+      walking.setLoop(true);
+
+      sound.setBuffer( sounds['kakariko_village.mp3'] );
+      sound.setLoop  ( true );
+      sound.setVolume( 0.25 );
+      if(!audioDebug) sound.play();
+
+      lights.forEach(l=>scene.add(l));
+      scene.add( cube);
+      scene.add( taquerocat.scene );
+      scene.add( stage.scene );
+
+      loadingscreen.style.visibility="hidden";
+      document.getElementById("info").style.visibility="hidden";
+      animate();
+    }
   );
 
 
@@ -377,33 +358,33 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   var turretMixer     = [];
   var turretAction    = []
   var turretpositions = [
-    new THREE.Vector3(0.000, -5.634, 0),
-    new THREE.Vector3(-40.836, -5.634, 0),
-    new THREE.Vector3(-56.052, -51.663, 0),
-    new THREE.Vector3(-56.052, -112.491, 0),
-    new THREE.Vector3(-2.697, -112.491, 0),
-    new THREE.Vector3(43.107, -112.491, 0),
-    new THREE.Vector3(59.586, -62.295, 0),
-    new THREE.Vector3(130.830, -31.839, 0),
-    new THREE.Vector3(187.695, -116.010, 0),
-    new THREE.Vector3(38.121, -127.266, 0),
-    new THREE.Vector3(-70.416, -123.114, 0),
+    new THREE.Vector3(   0.000,   -5.634, 0),
+    new THREE.Vector3( -40.836,   -5.634, 0),
+    new THREE.Vector3( -56.052,  -51.663, 0),
+    new THREE.Vector3( -56.052, -112.491, 0),
+    new THREE.Vector3(  -2.697, -112.491, 0),
+    new THREE.Vector3(  43.107, -112.491, 0),
+    new THREE.Vector3(  59.586,  -62.295, 0),
+    new THREE.Vector3( 130.830,  -31.839, 0),
+    new THREE.Vector3( 187.695, -116.010, 0),
+    new THREE.Vector3(  38.121, -127.266, 0),
+    new THREE.Vector3( -70.416, -123.114, 0),
     new THREE.Vector3(-138.315, -113.940, 0),
-    new THREE.Vector3(-203.118, -13.944, 0),
-    new THREE.Vector3(-216.252, 19.590, 0),
-    new THREE.Vector3(-242.901, 97.707, 0),
-    new THREE.Vector3(-187.059, 123.174, 0),
-    new THREE.Vector3(-117.282, 133.161, 0),
-    new THREE.Vector3(-36.478, 58.350, 0),
-    new THREE.Vector3(-125.008, -28.746, 0),
-    new THREE.Vector3(33.134, 85.797, 0),
-    new THREE.Vector3(37.706, 173.316, 0),
-    new THREE.Vector3(61.259, 203.097, 0),
-    new THREE.Vector3(74.381, 253.107, 0),
-    new THREE.Vector3(74.381, 294.759, 0),
-    new THREE.Vector3(47.699, 327.471, 0),
-    new THREE.Vector3(2.948, 257.466, 0),
-    new THREE.Vector3(-32.242, 237.885, 0)
+    new THREE.Vector3(-203.118,  -13.944, 0),
+    new THREE.Vector3(-216.252,   19.590, 0),
+    new THREE.Vector3(-242.901,   97.707, 0),
+    new THREE.Vector3(-187.059,  123.174, 0),
+    new THREE.Vector3(-117.282,  133.161, 0),
+    new THREE.Vector3( -36.478,   58.350, 0),
+    new THREE.Vector3(-125.008,  -28.746, 0),
+    new THREE.Vector3(  33.134,   85.797, 0),
+    new THREE.Vector3(  37.706,  173.316, 0),
+    new THREE.Vector3(  61.259,  203.097, 0),
+    new THREE.Vector3(  74.381,  253.107, 0),
+    new THREE.Vector3(  74.381,  294.759, 0),
+    new THREE.Vector3(  47.699,  327.471, 0),
+    new THREE.Vector3(   2.948,  257.466, 0),
+    new THREE.Vector3( -32.242,  237.885, 0)
   ];
 
   const removeturret = (index)=> {
@@ -453,11 +434,11 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       // console.log("item.material", item.material.name)
     };
 
-    let turret = objects["turret.glb"].scene.clone();
-    let lifemeter = life.clone();
-    lifemeter.up = camera.up;
-    lifemeter.lookAt(camera.position);
+    let turret       = objects["turret.glb"].scene.clone();
+    let lifemeter    = life.clone();
     turret.lifemeter = lifemeter;
+    lifemeter.up     = camera.up;
+    lifemeter.lookAt(camera.position);
     scene.add(lifemeter);
 
     let triPtr = triangle.clone();
@@ -529,7 +510,6 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
 
 
-
   let plasmaBallGeo = new THREE.Mesh(
     new THREE.SphereGeometry(0.5, 4, 4),
     plasmaballmaterial
@@ -579,9 +559,9 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
     } else {
       //this ugly. Makes target somewhere off screen
       plasmaBall.target = new THREE.Vector3();
-      plasmaBall.target.x=(plasmaBall.position.x - x);
-      plasmaBall.target.y=(plasmaBall.position.y - y);
-      plasmaBall.target.z=0;
+      plasmaBall.target.x = (plasmaBall.position.x - x);
+      plasmaBall.target.y = (plasmaBall.position.y - y);
+      plasmaBall.target.z = 0;
 
       plasmaBall.target.multiplyScalar(50);
       plasmaBall.target.add(plasmaBall.position);
@@ -653,6 +633,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
       cannons[index] = plasmaBall;
     }
   }; // const createcannon = (mesh) =>
+
 
   let boomz = [null];
   let lights = [
@@ -952,6 +933,8 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
   let level      = 0;
   let lastspawn  = 0;
 
+  let coinsheld = 0;
+
   let oldHealth  = null;
   let strHealth  = "";
   let oldScore   = null;
@@ -983,7 +966,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 
   let statsLast = 1;
   const updateStats = () => {
-    return;
+    // return;
     statsLast += delta;
     if(
       false &&
@@ -999,6 +982,7 @@ audioLoader.load( "./sound/taptap.mp3", function( buffer ) {
 HEALTH: ${healthText()}
 SCORE:  ${scoreText()}
 LEVEL:  ${levelText()}
+COINS:  ${coinsheld}
 NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
     `;
   }
@@ -1014,10 +998,10 @@ NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
 
   let xvector    = new THREE.Vector3(0,0,10);
   let yvector    = new THREE.Vector3(0,0,10);
+  let ballvector = new THREE.Vector3(0,0, 0);
   let xtarget    = new THREE.Vector3(0,0,10);
   let ytarget    = new THREE.Vector3(0,0,10);
   let balltarget = new THREE.Vector3(0,0, 0);
-  let ballvector = new THREE.Vector3(0,0, 0);
 
   let xray       = new THREE.Raycaster();
   let yray       = new THREE.Raycaster();
@@ -1185,7 +1169,7 @@ NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
       if(xbound[0]){
         cube.position.x += direction_x*(delta*30);
         cube.position.y += direction_y*(delta*30);
-        cube.position.z = xbound[0].point.z+0.5;
+        cube.position.z  = xbound[0].point.z+0.5;
       }
 
       setAnimation(true);
@@ -1308,6 +1292,7 @@ NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
         console.log("ball does not exist")
         continue;
       }
+
       let b = ballz[i];
 
       if(turrets.length > 0){
@@ -1325,6 +1310,25 @@ NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
         } // for (let i = 0; i!=turrets.length; i++)
       } // if(turrets.length > 0)
 
+      if(statuescount){
+        let si = statuescount;
+        while(si--){
+          let s = statues[si];
+          if(!s) continue;
+
+          if(b.position.distanceTo(s.position) < 4){
+            // console.log(i, statues[si])
+            removeball(b, i);
+            throwCoins(statues[si].position);
+            statues[si].position.z = -10;
+            statues[si].updateMatrix();
+            gatostatue.setMatrixAt(si, statues[si].matrix);
+            gatostatue.instanceMatrix.needsUpdate = true;
+            return;
+          }
+        }
+      }
+
       if(b.position.distanceTo(b.target) < 1){
         removeball(b, i);
         return;
@@ -1333,6 +1337,71 @@ NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
       b.translateY(-50 * delta); // move along the local y-axis
     }
   } // const doBallzFrame = () =>
+
+  let availablecoins = [];
+
+  function easeOutBounce(x) {
+    /*
+      x represents the absolute progress of the animation in the bounds of 0 (beginning of the animation) and 1 (end of animation).
+    */
+    const n1 = 7.5625;
+    const d1 = 2.75;
+
+    if (x < 1 / d1) {
+        return n1 * x * x;
+    } else if (x < 2 / d1) {
+        return n1 * (x -= 1.5 / d1) * x + 0.75;
+    } else if (x < 2.5 / d1) {
+        return n1 * (x -= 2.25 / d1) * x + 0.9375;
+    } else {
+        return n1 * (x -= 2.625 / d1) * x + 0.984375;
+    }
+  }
+
+  function easeInBounce(x) {
+    return 1 - easeOutBounce(1 - x);
+  }
+
+  const throwCoins = (sourceposition) => {
+    let n = THREE.MathUtils.randInt(3, coincount);
+    console.log("coins", n, availablecoins)
+    let ci = coincount;
+    while(ci--){
+      if(!availablecoins[ci]) continue;
+      availablecoins[ci].position.copy(sourceposition);
+      availablecoins[ci].position.direction = THREE.MathUtils.randFloat(-Math.PI, Math.PI);
+      availablecoins[ci].position.speed     = 10;
+      // availablecoins[ci] = null;
+      if(!(n--)) break;
+    }
+  }
+
+  const doCoinsFrame = () => {
+    for (var i = 0; i < coincount; i++) {
+      if(coins[i].position.z < 0) continue;
+      coins[i].rotation.z+=delta;
+
+      let pos   = coins[i].position;
+      let d     = pos.direction || 0;
+      pos.speed = THREE.MathUtils.clamp(pos.speed - (delta*7), 0, 10);
+      let s     = pos.speed||0
+
+      pos.x += (Math.cos(d) * delta) * (s);
+      pos.y += (Math.sin(d) * delta) * (s);
+      pos.z = easeInBounce(s/10)*5;
+
+      if(cube.position.distanceTo(pos) < 5){
+        availablecoins[i] = coins[i];
+        pos.z = -10;
+        pos.speed = 10;
+        coinsheld++;
+        coins[i].audio.get.play();
+      }
+      coins[i].updateMatrix();
+      gatocoin.setMatrixAt(i, coins[i].matrix);
+    }
+    gatocoin.instanceMatrix.needsUpdate = true;
+  }
 
 
   var cameraOrtho;
@@ -1508,8 +1577,8 @@ NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
 
   let lookAtTarget = new THREE.Vector3();
   let lookAtLerp   = new THREE.Vector3();
+  let mixerkeys    = null;
 
-  let mixerkeys = null;
   function animate() {
     delta = clock.getDelta();
 
@@ -1523,6 +1592,7 @@ NEXT:   ${((20-level)-lastspawn).toFixed(0)}s
     doTurretFrame();
     doBoomzFrame();
     doCannonsFrame();
+    doCoinsFrame();
 
     doCharacterMovement();
 
