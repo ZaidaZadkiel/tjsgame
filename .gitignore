@@ -3,3 +3,4 @@ node_modules/
 img/cover.jpg~
 dist/
 /dist/
+/*.zip
